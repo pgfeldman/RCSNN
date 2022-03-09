@@ -3,12 +3,13 @@ from rcsnn.base.DataDictionary import DataDictionary, DictionaryEntry, Dictionar
 from rcsnn.base.Responses import Responses, ResponseObject
 from rcsnn.base.States import States
 
+from typing import Union
 
 class BaseController():
-    cmd: CommandObject = None
-    rsp: ResponseObject = None
+    cmd: CommandObject = Union[CommandObject, None]
+    rsp: ResponseObject = Union[ResponseObject, None]
     cur_state = States.NOP
-    ddict: DataDictionary = None
+    ddict: DataDictionary = Union[DataDictionary, None]
     name = "unset"
     clock = 0
     dclock = 0
