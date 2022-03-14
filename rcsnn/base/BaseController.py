@@ -3,19 +3,51 @@ from rcsnn.base.DataDictionary import DataDictionary, DictionaryEntry, Dictionar
 from rcsnn.base.Responses import Responses, ResponseObject
 from rcsnn.base.States import States
 
-from typing import Union
+from typing import Union, Dict
 
 class BaseController():
-    cmd: CommandObject = Union[CommandObject, None]
-    rsp: ResponseObject = Union[ResponseObject, None]
-    cur_state = States.NOP
-    ddict: DataDictionary = Union[DataDictionary, None]
-    name = "unset"
-    clock = 0
-    dclock = 0
-    elapsed = 0
-    child_cmd_dict = {}
-    child_rsp_dict = {}
+    '''
+    The BaseController object is the base class for all modules. It has basic functionality to
+    connect to a data dictionary process and respond to commands from its parent and issue
+    commands and handle responses from its child modules
+
+    Attributes
+    ----------
+    cmd: CommandObject
+    rsp: ResponseObject
+    cur_state:States
+    ddict:DataDictionary
+    name:str
+    clock:float
+    dclock:float
+    elapsed:float
+    child_cmd_dict:Dict
+    child_rsp_dict:Dict
+
+    Methods
+    -------
+    reset(self):
+    add_init(self):
+    add_reset(self):
+    set_cmd_obj(self, co: CommandObject):
+    set_rsp_obj(self, ro: ResponseObject):
+    add_child_cmd(self, cmd: CommandObject):
+    add_child_rsp(self, rsp: ResponseObject):
+    set_all_child_cmd(self, cmd: Commands):
+    test_all_child_rsp(self, rsp: Responses) -> bool:
+
+
+    '''
+    cmd: Union[CommandObject, None]
+    rsp: Union[ResponseObject, None]
+    cur_state: States
+    ddict: Union[DataDictionary, None]
+    name:str
+    clock:float
+    dclock:float
+    elapsed:float
+    child_cmd_dict:Dict
+    child_rsp_dict:Dict
 
     def __init__(self, name: str, ddict: DataDictionary):
         self.reset()
@@ -24,17 +56,23 @@ class BaseController():
         self.add_init()
 
     def reset(self):
+        '''
+        Resets all the global values for this class
+        :return: None
+        '''
         self.name = "unset"
         self.clock = 0
         self.dclock = 0
         self.elapsed = 0
-        self.cmd: CommandObject = None
-        self.rsp: ResponseObject = None
+        self.cmd = None
+        self.rsp = None
+        self.cur_state = States.NOP
         self.child_cmd_dict = {}
         self.child_rsp_dict = {}
         self.add_reset()
 
     def add_init(self):
+        ""
         pass
 
     def add_reset(self):
@@ -155,21 +193,21 @@ if __name__ == "__main__":
     elapsed_time_entry = DictionaryEntry("elapsed-time", DictionaryTypes.FLOAT, 0)
     ddict.add_entry(elapsed_time_entry)
 
-    t2p_cmd = CommandObject("board-monitor", "parent-controller")
-    de = DictionaryEntry(t2p_cmd.name, DictionaryTypes.COMMAND, t2p_cmd)
+    top_to_parent_cmd_obj = CommandObject("board-monitor", "parent-controller")
+    de = DictionaryEntry(top_to_parent_cmd_obj.name, DictionaryTypes.COMMAND, top_to_parent_cmd_obj)
     ddict.add_entry(de)
 
-    t2p_rsp = ResponseObject("board-monitor", "parent-controller")
-    de = DictionaryEntry(t2p_rsp.name, DictionaryTypes.RESPONSE, t2p_rsp)
+    top_to_parent_rsp_obj = ResponseObject("board-monitor", "parent-controller")
+    de = DictionaryEntry(top_to_parent_rsp_obj.name, DictionaryTypes.RESPONSE, top_to_parent_rsp_obj)
     ddict.add_entry(de)
 
     parent_ctrl = BaseController("parent-controller", ddict)
-    parent_ctrl.set_cmd_obj(t2p_cmd)
-    parent_ctrl.set_rsp_obj(t2p_rsp)
+    parent_ctrl.set_cmd_obj(top_to_parent_cmd_obj)
+    parent_ctrl.set_rsp_obj(top_to_parent_rsp_obj)
     # child_ctrl = BaseController("child_controller", ddict)
     # parent_ctrl.add_child(child_ctrl)
 
-    t2p_cmd.set(Commands.INIT, 1)
+    top_to_parent_cmd_obj.set(Commands.INIT, 1)
     done = False
     i = 0
     while not done:
@@ -179,11 +217,11 @@ if __name__ == "__main__":
         parent_ctrl.step()
         print(parent_ctrl.to_string())
 
-        if t2p_cmd.test(Commands.INIT) and parent_ctrl.rsp.test(Responses.DONE):
-            t2p_cmd.set(Commands.RUN, 2)
-        elif t2p_cmd.test(Commands.RUN) and parent_ctrl.rsp.test(Responses.DONE):
-            t2p_cmd.set(Commands.TERMINATE, 3)
-        elif t2p_cmd.test(Commands.TERMINATE) and parent_ctrl.rsp.test(Responses.DONE):
+        if top_to_parent_cmd_obj.test(Commands.INIT) and parent_ctrl.rsp.test(Responses.DONE):
+            top_to_parent_cmd_obj.set(Commands.RUN, 2)
+        elif top_to_parent_cmd_obj.test(Commands.RUN) and parent_ctrl.rsp.test(Responses.DONE):
+            top_to_parent_cmd_obj.set(Commands.TERMINATE, 3)
+        elif top_to_parent_cmd_obj.test(Commands.TERMINATE) and parent_ctrl.rsp.test(Responses.DONE):
             done = True
 
         i += 1
