@@ -14,27 +14,84 @@ class BaseController():
     Attributes
     ----------
     cmd: CommandObject
+        The commands from the parent to this instance
     rsp: ResponseObject
+        The response from this instance to the parent
     cur_state:States
+        The current state of the command that is currently being executed
     ddict:DataDictionary
+        The pointer to the DataDictionary instance that mediates all communication in the system
     name:str
+        The name of this instance
     clock:float
+        The current time. Taken from the DataDictionary "elapsed-time"
     dclock:float
+        The time since this instance was called
     elapsed:float
+        A resettable clock that increments by dclock
     child_cmd_dict:Dict
+        A Dict containing names and pointers to all the commands to child controllers
     child_rsp_dict:Dict
+        A Dict containing names and pointers to all the responses from child controllers
 
     Methods
     -------
     reset(self):
+        Resets all the global values for this Base class
     add_init(self):
+        An empty method for subclasses to initialize. Called from self.__init__()
     add_reset(self):
+        An empty method for subclasses to reset. Called from self.reset()
     set_cmd_obj(self, co: CommandObject):
+        Sets the pointer to an externally created CommandObject
     set_rsp_obj(self, ro: ResponseObject):
+        Sets the pointer to an externally created ResponseObject
     add_child_cmd(self, cmd: CommandObject):
+        Adds a CommandObject to this instance's child_cmd_dict
     add_child_rsp(self, rsp: ResponseObject):
+        Adds a ResponseObject to this instance's child_rsp_dict
     set_all_child_cmd(self, cmd: Commands):
+        Set the same Commands enum for all the entries in the child_cmd_dict
     test_all_child_rsp(self, rsp: Responses) -> bool:
+        Test to see that all the entries are equal to the passed-in Responses enum. Returns True if they all match
+    evaluate_cmd(self) -> Commands:
+        Handle the current command. It it's a new command, then set the cur_state to NEW_COMMAND and the response to
+        EXECUTING. Returns the current command enum
+    step(self):
+        Update the clocks, and call the pre_process(), decision_process() and post_process() methods
+    pre_process(self):
+        An empty method for subclasses to use to perform any calculations that need to be performed before the
+        decision_process(). This could be reading in sensor values or processing information in the data dictionary
+        in ways that are only used by this class
+    decision_process(self):
+        The method that decides what code to run, based on the current command. The default modes are INIT, RUN,
+        and TERMINATE
+    post_process(self):
+        An empty method for subclasses to use to perform any actions that need to be performed after the
+        decision_process(). This could be writing out information to the data dictionary in ways that are
+        needed by other classes or displays
+    init_task(self):
+        Initialization code is wrapped in state tables so that each command has a specific lifecycle. In
+        the default case, when a new INIT has been issued, cur_state will be NEW_COMMAND. This is relayed to the
+        child controllers, the cur_state is set to S0, and the response is set to EXECUTING. After the INIT has
+        rippled through the child classes and they have all returned DONE, this this class returns DONE to its parent
+    run_task(self):
+        Often, the normal state for a module is RUN. The RUN code is wrapped in state tables so that the command has
+        a specific lifecycle. In the default case, when a new RUN has been issued, cur_state will be NEW_COMMAND.
+        This is relayed to the child controllers, the cur_state is set to S0, and the response is set to EXECUTING.
+        This state can sustain for as long as the context doesn't change. In the default (example) class, execution
+        continues until elapsed exceeds run_time_limit, at which point the bottommost class would return a DONE. The
+        DONE ripples up through the parent classes until it hits a level in the hierarchy where a new command is issued
+    terminate_task(self):
+        Termination code is wrapped in state tables so that each command has a specific lifecycle. In
+        the default case, when a new TERMINATE has been issued, cur_state will be NEW_COMMAND. This is relayed to the
+        child controllers, the cur_state is set to S0, and the response is set to EXECUTING. After the TERMINATE has
+        rippled through the child classes and they have all returned DONE, this this class returns DONE to its parent
+    to_string(self):
+        returns a string that shows the name, command, response, and current state
+    create_cmd_rsp(parent: "BaseController", child: "BaseController", ddict: DataDictionary): Static method
+        Convenience class that creates a CommandObject and ResponseObject between a child and parent and adds these
+        objects to the data dictionary
 
 
     '''
@@ -72,7 +129,6 @@ class BaseController():
         self.add_reset()
 
     def add_init(self):
-        ""
         pass
 
     def add_reset(self):
@@ -146,14 +202,15 @@ class BaseController():
             self.rsp.set(Responses.DONE)
 
     def run_task(self):
-        print("{} run_task(): elapsed = {:.2f}".format(self.name, self.elapsed))
+        run_time_limit = 0.3
+        print("{} run_task(): elapsed = {:.2f} of {} ({:.2f} remaining)".format(self.name, self.elapsed, run_time_limit, (run_time_limit-self.elapsed)))
         if self.cur_state == States.NEW_COMMAND:
             print("{} is running".format(self.name))
             self.set_all_child_cmd(Commands.RUN)
             self.cur_state = States.S0
             self.elapsed = 0
             self.rsp.set(Responses.EXECUTING, self.cmd.serial)
-        elif self.cur_state == States.S0 and self.elapsed >= 1 and self.test_all_child_rsp(Responses.DONE):
+        elif self.cur_state == States.S0 and self.elapsed >= run_time_limit and self.test_all_child_rsp(Responses.DONE):
             print("{} has finished running".format(self.name))
             self.cur_state = States.NOP
             self.rsp.set(Responses.DONE)
@@ -169,13 +226,13 @@ class BaseController():
             self.cur_state = States.NOP
             self.rsp.set(Responses.DONE)
 
-    def to_string(self):
+    def to_string(self) -> str:
         to_return = "Module {}:\n\t{}\n\t{}\n\tcur_state = {}". \
             format(self.name, self.cmd.to_string(), self.rsp.to_string(), self.cur_state)
         return to_return
 
     @staticmethod
-    def create_cmd_rsp(parent: "BaseController", child: "BaseController", ddict: DataDictionary):
+    def link_parent_child(parent: "BaseController", child: "BaseController", ddict: DataDictionary):
         p2c_cmd = CommandObject(parent.name, child.name)
         p2c_rsp = ResponseObject(parent.name, child.name)
         child.set_cmd_obj(p2c_cmd)
@@ -189,33 +246,48 @@ class BaseController():
 
 
 if __name__ == "__main__":
+    """
+    Exercise the class in a toy hierarchy that initializes, runs, and terminates. The hierarchy is controlled from the
+    main loop and has two controllers, a "parent" and a "child"
+    """
+    # create the data dictionary and add "elapsed-time" as a float
     ddict = DataDictionary()
     elapsed_time_entry = DictionaryEntry("elapsed-time", DictionaryTypes.FLOAT, 0)
     ddict.add_entry(elapsed_time_entry)
 
+    # Create the command object that will send commands from the main loop to the only module in this hierarchy
     top_to_parent_cmd_obj = CommandObject("board-monitor", "parent-controller")
     de = DictionaryEntry(top_to_parent_cmd_obj.name, DictionaryTypes.COMMAND, top_to_parent_cmd_obj)
     ddict.add_entry(de)
 
+    # Create the response object that will send responses from the module to the main loop
     top_to_parent_rsp_obj = ResponseObject("board-monitor", "parent-controller")
     de = DictionaryEntry(top_to_parent_rsp_obj.name, DictionaryTypes.RESPONSE, top_to_parent_rsp_obj)
     ddict.add_entry(de)
 
+    # Create an instance of a controller. An actual controller would inherit from this class rather than instancing the
+    # default
     parent_ctrl = BaseController("parent-controller", ddict)
     parent_ctrl.set_cmd_obj(top_to_parent_cmd_obj)
     parent_ctrl.set_rsp_obj(top_to_parent_rsp_obj)
-    # child_ctrl = BaseController("child_controller", ddict)
-    # parent_ctrl.add_child(child_ctrl)
 
+    # Add a child controller under the parent controller
+    child_ctrl = BaseController("child_controller", ddict)
+    BaseController.link_parent_child(parent_ctrl, child_ctrl, ddict)
+
+    # Set the INIT command that will start the hierarchy, then iterate until the INIT->RUN->TERMINATE sequence completes
     top_to_parent_cmd_obj.set(Commands.INIT, 1)
     done = False
-    i = 0
+    current_step = 0
     while not done:
-        print("\nstep[{}]---------------".format(i))
+        print("\nstep[{}]---------------".format(current_step))
         elapsed_time_entry.data += 0.1
-        ddict.store(1)
+        ddict.store(skip = 1)
         parent_ctrl.step()
         print(parent_ctrl.to_string())
+
+        child_ctrl.step()
+        print(child_ctrl.to_string())
 
         if top_to_parent_cmd_obj.test(Commands.INIT) and parent_ctrl.rsp.test(Responses.DONE):
             top_to_parent_cmd_obj.set(Commands.RUN, 2)
@@ -224,6 +296,6 @@ if __name__ == "__main__":
         elif top_to_parent_cmd_obj.test(Commands.TERMINATE) and parent_ctrl.rsp.test(Responses.DONE):
             done = True
 
-        i += 1
+        current_step += 1
     print("\nDataDictionary:\n{}".format(ddict.to_string()))
     ddict.to_excel("../../data/", "base-controller.xlsx")
