@@ -57,6 +57,8 @@ class BaseController():
     evaluate_cmd(self) -> Commands:
         Handle the current command. It it's a new command, then set the cur_state to NEW_COMMAND and the response to
         EXECUTING. Returns the current command enum
+    get_response(self) -> ResponseObject:
+        Get the this controller's ResponseObject that it uses to reply to its parent
     step(self):
         Update the clocks, and call the pre_process(), decision_process() and post_process() methods
     pre_process(self):
@@ -107,16 +109,27 @@ class BaseController():
     child_rsp_dict:Dict
 
     def __init__(self, name: str, ddict: DataDictionary):
+        """Constructor: Sets up the basic components of the class
+
+        Parameters
+        ----------
+        name: str
+            The name of the class
+        ddict: DataDictionary
+            The data dictionary used for all data in the system
+        """
         self.reset()
         self.name = name
         self.ddict = ddict
         self.add_init()
 
     def reset(self):
-        '''
-        Resets all the global values for this class
-        :return: None
-        '''
+        """ Resets all the global values for this Base class
+
+        Parameters
+        ----------
+        :return:
+        """
         self.name = "unset"
         self.clock = 0
         self.dclock = 0
@@ -129,43 +142,125 @@ class BaseController():
         self.add_reset()
 
     def add_init(self):
+        """ An empty method for subclasses to initialize. Called from self.__init__()
+
+        Parameters
+        ----------
+        :return:
+        """
         pass
 
     def add_reset(self):
+        """ An empty method for subclasses to reset. Called from self.reset()
+
+        Parameters
+        ----------
+        :return:
+        """
         pass
 
     def set_cmd_obj(self, co: CommandObject):
+        """ Sets the pointer to an externally created CommandObject
+
+        Parameters
+        ----------
+        co: CommandObject
+            The CommandObject that this class uses to get commands from its parent
+        :return:
+        """
         self.cmd = co
 
     def set_rsp_obj(self, ro: ResponseObject):
+        """ Sets the pointer to an externally created ResponseObject
+
+        Parameters
+        ----------
+        ro: ResponseObject
+            The ResponseObject that this class uses to send responses to its parent
+        :return:
+        """
         self.rsp = ro
 
     def add_child_cmd(self, cmd: CommandObject):
+        """ Adds a CommandObject to this instance's child_cmd_dict
+
+        Parameters
+        ----------
+        co: CommandObject
+            The CommandObject that the child class uses to get commands from this class, its parent
+        :return:
+        """
         self.child_cmd_dict[cmd.name] = cmd
 
     def add_child_rsp(self, rsp: ResponseObject):
+        """ Adds a ResponseObject to this instance's child_rsp_dict
+
+        Parameters
+        ----------
+        rsp: ResponseObject
+            The ResponseObject that the child class uses to send responses to this class, its parent
+        :return:
+        """
         self.child_rsp_dict[rsp.name] = rsp
 
     def set_all_child_cmd(self, cmd: Commands):
+        """ Set the same Commands enum for all the entries in the child_cmd_dict
+
+        Parameters
+        ----------
+         cmd: Commands
+            The Commands enum that will be sent to all child controllers
+        :return:
+        """
         for co in self.child_cmd_dict.values():
             co.set(cmd, co.next_serial())
 
     def test_all_child_rsp(self, rsp: Responses) -> bool:
+        """ Test to see that all the entries are equal to the passed-in Responses enum. Returns True if they all match
+
+        Parameters
+        ----------
+         rsp: Responses
+            The Responses enum that will be evaluated against all child controllers
+        :return: True if all responses match, False otherwise
+        """
         for ro in self.child_rsp_dict.values():
             if not ro.test(rsp):
                 return False
         return True
 
     def evaluate_cmd(self) -> Commands:
+        """ Handle the current command. It it's a new command, then set the cur_state to NEW_COMMAND and the response to
+        EXECUTING. Returns the current command enum
+
+        Parameters
+        ----------
+
+        :return: The current command enum for this controller
+        """
         if self.cmd.new_command:
             self.cur_state = States.NEW_COMMAND
             self.rsp.set(Responses.EXECUTING, self.cmd.serial)
         return self.cmd.get()
 
     def get_response(self) -> ResponseObject:
+        """ Get the this controller's ResponseObject that it uses to reply to its parent
+
+        Parameters
+        ----------
+
+        :return: This controller's ResponseObject that it uses to reply to its parent
+        """
         return (self.rsp)
 
     def step(self):
+        """ Update the clocks, and call the pre_process(), decision_process() and post_process() methods
+
+        Parameters
+        ----------
+
+        :return:
+        """
         current = self.ddict.get_entry("elapsed-time").data
         self.dclock = current - self.clock
         self.clock = current
@@ -176,9 +271,26 @@ class BaseController():
         self.post_process()
 
     def pre_process(self):
+        """ An empty method for subclasses to use to perform any calculations that need to be performed before the
+        decision_process(). This could be reading in sensor values or processing information in the data dictionary
+        in ways that are only used by this class
+
+        Parameters
+        ----------
+
+        :return:
+        """
         pass
 
     def decision_process(self):
+        """ The method that decides what code to run, based on the current command. The default modes are INIT, RUN,
+        and TERMINATE
+
+        Parameters
+        ----------
+
+        :return:
+        """
         command = self.evaluate_cmd()
         if command == Commands.INIT:
             self.init_task()
@@ -188,9 +300,28 @@ class BaseController():
             self.terminate_task()
 
     def post_process(self):
+        """ An empty method for subclasses to use to perform any actions that need to be performed after the
+        decision_process(). This could be writing out information to the data dictionary in ways that are
+        needed by other classes or displays
+
+        Parameters
+        ----------
+
+        :return:
+        """
         pass
 
     def init_task(self):
+        """ Initialization code is wrapped in state tables so that each command has a specific lifecycle. In
+        the default case, when a new INIT has been issued, cur_state will be NEW_COMMAND. This is relayed to the
+        child controllers, the cur_state is set to S0, and the response is set to EXECUTING. After the INIT has
+        rippled through the child classes and they have all returned DONE, this this class returns DONE to its parent
+
+        Parameters
+        ----------
+
+        :return:
+        """
         if self.cur_state == States.NEW_COMMAND:
             print("{} is initializing".format(self.name))
             self.set_all_child_cmd(Commands.INIT)
@@ -202,6 +333,18 @@ class BaseController():
             self.rsp.set(Responses.DONE)
 
     def run_task(self):
+        """ Often, the normal state for a module is RUN. The RUN code is wrapped in state tables so that the command has
+        a specific lifecycle. In the default case, when a new RUN has been issued, cur_state will be NEW_COMMAND.
+        This is relayed to the child controllers, the cur_state is set to S0, and the response is set to EXECUTING.
+        This state can sustain for as long as the context doesn't change. In the default (example) class, execution
+        continues until elapsed exceeds run_time_limit, at which point the bottommost class would return a DONE. The
+        DONE ripples up through the parent classes until it hits a level in the hierarchy where a new command is issued
+
+        Parameters
+        ----------
+
+        :return:
+        """
         run_time_limit = 0.3
         print("{} run_task(): elapsed = {:.2f} of {} ({:.2f} remaining)".format(self.name, self.elapsed, run_time_limit, (run_time_limit-self.elapsed)))
         if self.cur_state == States.NEW_COMMAND:
@@ -216,6 +359,16 @@ class BaseController():
             self.rsp.set(Responses.DONE)
 
     def terminate_task(self):
+        """ Termination code is wrapped in state tables so that each command has a specific lifecycle. In
+        the default case, when a new TERMINATE has been issued, cur_state will be NEW_COMMAND. This is relayed to the
+        child controllers, the cur_state is set to S0, and the response is set to EXECUTING. After the TERMINATE has
+        rippled through the child classes and they have all returned DONE, this this class returns DONE to its parent
+
+        Parameters
+        ----------
+
+        :return:
+        """
         if self.cur_state == States.NEW_COMMAND:
             print("{} is terminating".format(self.name))
             self.set_all_child_cmd(Commands.TERMINATE)
@@ -227,12 +380,34 @@ class BaseController():
             self.rsp.set(Responses.DONE)
 
     def to_string(self) -> str:
+        """ returns a string that shows the name, command, response, and current state
+
+        Parameters
+        ----------
+
+        :return: A string that shows the name, command, response, and current state
+        """
         to_return = "Module {}:\n\t{}\n\t{}\n\tcur_state = {}". \
             format(self.name, self.cmd.to_string(), self.rsp.to_string(), self.cur_state)
         return to_return
 
     @staticmethod
     def link_parent_child(parent: "BaseController", child: "BaseController", ddict: DataDictionary):
+        """ Convenience class that creates a CommandObject and ResponseObject between a child and parent and adds these
+        objects to the data dictionary
+
+        Parameters
+        ----------
+        parent: BaseController
+            The parent controller that will send commands and get responses from the child controller
+        child: BaseController
+            The child controller that will get commands and send responses to the parent controller
+        ddict: DataDictionary
+            The data dictionary that will contain the entries for the CommandObject and responseObject that are
+            created for communication
+
+        :return:
+        """
         p2c_cmd = CommandObject(parent.name, child.name)
         p2c_rsp = ResponseObject(parent.name, child.name)
         child.set_cmd_obj(p2c_cmd)
