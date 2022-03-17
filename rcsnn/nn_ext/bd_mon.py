@@ -8,6 +8,12 @@ from rcsnn.base.ResponseObject import ResponseObject
 from rcsnn.base.Responses import Responses
 from rcsnn.base.BaseController import BaseController
 
+def choose_new_target():
+    pass
+
+def step_scenario():
+    choose_new_target()
+
 def main():
     """
     Exercise the class in a toy hierarchy that initializes, runs, and terminates. The hierarchy is controlled from the
@@ -63,7 +69,7 @@ def main():
 
         if top_to_ship_cmd_obj.test(Commands.INIT) and ship_ctrl.rsp.test(Responses.DONE):
             top_to_ship_cmd_obj.set(Commands.RUN, 2)
-        elif top_to_ship_cmd_obj.test(Commands.RUN) and ship_ctrl.rsp.test(Responses.DONE):
+        elif top_to_ship_cmd_obj.test(Commands.RUN) and ship_ctrl.rsp.test(Responses.DONE): # handle new targets
             top_to_ship_cmd_obj.set(Commands.TERMINATE, 3)
         elif top_to_ship_cmd_obj.test(Commands.TERMINATE) and ship_ctrl.rsp.test(Responses.DONE):
             done = True
