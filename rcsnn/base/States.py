@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class States(Enum):
+class States():
     NOP = "no_op"
     NEW_COMMAND = "new_command"
     INITIALIZING = "initializing"

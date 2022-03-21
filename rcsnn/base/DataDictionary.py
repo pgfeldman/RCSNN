@@ -113,9 +113,9 @@ class DictionaryEntry:
         :return: The current value for this entry
         """
         if self.type == DictionaryTypes.COMMAND:
-            return self.data.cmd.name
+            return self.data.cmd#.name
         elif self.type == DictionaryTypes.RESPONSE:
-            return self.data.rsp.name
+            return self.data.rsp#.name
         else:
             return self.data
 
@@ -137,10 +137,10 @@ class DictionaryEntry:
         :return:
         """
         if self.type == DictionaryTypes.COMMAND:
-            n = self.data.cmd.name
+            n = self.data.cmd#.name
             self.data_list.append(n)
         elif self.type == DictionaryTypes.RESPONSE:
-            n = self.data.rsp.name
+            n = self.data.rsp#.name
             self.data_list.append(n)
         else:
             self.data_list.append(self.data)
