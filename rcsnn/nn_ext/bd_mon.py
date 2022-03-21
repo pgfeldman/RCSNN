@@ -41,10 +41,10 @@ def main():
     ship_ctrl.set_rsp_obj(top_to_ship_rsp_obj)
 
     # Add the child controller under the ship controller
-    navigation_ctrl = NavigateController("navigate_controller", ddict)
+    navigation_ctrl = NavigateController("navigate-controller", ddict)
     BaseController.link_parent_child(ship_ctrl, navigation_ctrl, ddict)
 
-    missile_ctrl = MissileController("missile_controller", ddict)
+    missile_ctrl = MissileController("missile-controller", ddict)
     BaseController.link_parent_child(ship_ctrl, missile_ctrl, ddict)
 
     # Set the INIT command that will start the hierarchy, then iterate until the INIT->RUN->TERMINATE sequence completes
@@ -55,6 +55,7 @@ def main():
         print("\nstep[{}]---------------".format(current_step))
         elapsed_time_entry.data += 0.1
         ddict.store(skip = 1)
+        ddict.log_to_csv("testlog.csv", 1)
 
         # ---------- step all the controllers
         ship_ctrl.step()
@@ -75,6 +76,10 @@ def main():
             done = True
 
         current_step += 1
+
+        # for debugging
+        if current_step == 100:
+            done = True
     print("\nDataDictionary:\n{}".format(ddict.to_string()))
     ddict.to_excel("../../data/", "ship-controller.xlsx")
 
