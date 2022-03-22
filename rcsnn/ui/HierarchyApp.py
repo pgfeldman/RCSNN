@@ -5,7 +5,7 @@ from typing import Union, Any
 
 from rcsnn.ui.AppBase import AppBase
 
-class HierarchyBuilder(AppBase):
+class HierarchyApp(AppBase):
     hierarchy_json:Union[Any, None]
 
     def setup_app(self):
@@ -39,7 +39,7 @@ class HierarchyBuilder(AppBase):
             print(json.dumps(self.hierarchy_json, indent=2, sort_keys=False))
 
 def main():
-    app = HierarchyBuilder()
+    app = HierarchyApp()
     app.mainloop()
 
 if __name__ == "__main__":
