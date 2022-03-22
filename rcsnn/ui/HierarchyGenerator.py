@@ -50,6 +50,13 @@ class HierarchyModule:
             l.append("{}_{}".format(self.classname, i))
         return l
 
+    def generate_code(self):
+        for classname in self.get_classnames():
+            filename = "{}.py".format(classname)
+            with open(filename, 'w') as f:
+                f.write(CodeSlugs.imports)
+                f.write(CodeSlugs.module_head.format(classname))
+
     def to_string(self) -> str:
         return "name = {}\n\tquantity = {}\n\tparent = {}\n\tcommands = {}".format(self.name, self.quantity, self.parent, self.commands)
 
@@ -97,11 +104,7 @@ class HierarchyGenerator:
         # gen modules
         hm:HierarchyModule
         for hm in self.hmodule_list:
-            for classname in hm.get_classnames():
-                filename = "{}.py".format(classname)
-                with open(filename, 'w') as f:
-                    f.write(CodeSlugs.imports)
-                    f.write(CodeSlugs.module_head.format(classname))
+            hm.generate_code()
         os.chdir(cwd)
 
 
