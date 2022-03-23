@@ -192,6 +192,8 @@ class DataDictionary:
     add_entry(self, de: DictionaryEntry):
         Adds a DictionaryEntry to the dictionary using the DictionaryEntry's name as the key. If the key already exists
         in the ddict, throw a ValueError
+    new_entry(self, name:str, type:DictionaryTypes, data:Any=None, master: bool = True) -> DictionaryEntry:
+        Creates a new DictionaryEntry and adds it to this DataDictionary, and returns the new entry
     set_entries_from_dict(self, dict_list:List):
         Set a batch of entrise from a List of Dicts. Useful for loading from a file
     set_entry_from_dict(self, d:Dict) -> bool:
@@ -256,6 +258,27 @@ class DataDictionary:
         if de.name in self.ddict:
             raise ValueError("-------- ERROR -------- DataDictionary.add_entry() Duplicate definition of {}".format(de.name))
         self.ddict[de.name] = de
+
+    def new_entry(self, name:str, type:DictionaryTypes, data:Any=None, master: bool = True) -> DictionaryEntry:
+        """ Creates a new DictionaryEntry and adds it to this DataDictionary, and returns the new entry
+
+        Parameters
+        ----------
+        name: str
+            The name of the class
+        type: DictionaryType
+            The type of data this is. Can be a simple type like and INT or a FLOAT, or something more complex like COMMAND or RESPONSE
+        data:Any
+            The data stored in this entry
+        master:bool
+            A flag that indicates if this value comes from another dictionary. If it does, we sync to the master whenever possible
+
+        return:
+            The newly created DictionaryEntry
+        """
+        de:DictionaryEntry = DictionaryEntry(name, type, data, master)
+        self.add_entry(de)
+        return de
 
     def set_entries_from_dict(self, dict_list:List):
         """ set a batch of entrise from a List of Dicts. Useful for loading from a file. Entries are in the form of:

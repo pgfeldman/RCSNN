@@ -1,7 +1,8 @@
+import io
 import json
 import os
 import glob
-from typing import List, Dict
+from typing import List, Dict, Union, TextIO
 
 class CodeSlugs:
     imports = '''from rcsnn.nn_ext.CruiserController import CruiserController
@@ -12,7 +13,7 @@ from rcsnn.base.CommandObject import CommandObject
 from rcsnn.base.Commands import Commands
 from rcsnn.base.ResponseObject import ResponseObject
 from rcsnn.base.Responses import Responses
-from rcsnn.base.BaseController import BaseController'''
+from rcsnn.base.BaseController import BaseController\n\n'''
 
     module_head = '''
 
@@ -35,6 +36,7 @@ def main():
     ddict = DataDictionary()
     elapsed_time_entry = DictionaryEntry("elapsed-time", DictionaryTypes.FLOAT, 0)
     ddict.add_entry(elapsed_time_entry)
+    
 '''
 
 class HierarchyModule:
@@ -58,6 +60,13 @@ class HierarchyModule:
             if hm != self:
                 if self.name == hm.parent:
                     self.children.append(hm)
+
+    def has_child(self, name:str):
+        hm:HierarchyModule
+        for hm in self.children:
+            if hm.name == name:
+                return hm
+        return None
 
     def generate_code(self):
         filename = "{}.py".format(self.classname)
@@ -98,6 +107,7 @@ class HierarchyGenerator:
     bdmon:str
     data_dir:str
     code_dir:str
+    code_prefix:str
     logfile:str
     spreadsheet:str
     log_step:int
@@ -135,23 +145,69 @@ class HierarchyGenerator:
                 hm.find_children(self.hmodule_list)
                 print(hm.to_string())
 
+    def find_modules_by_parent_name(self, name:str) -> List[HierarchyModule]:
+        l = []
+        hm:HierarchyModule
+        for hm in self.hmodule_list:
+            if hm.parent == name:
+                l.append(hm)
+        return l
+
+    def find_module_by_child_name(self, name:str) -> Union[None, HierarchyModule]:
+        hm:HierarchyModule
+        for hm in self.hmodule_list:
+            if hm.has_child(name):
+                return hm
+        return None
+
+
     def generate_code(self):
         cwd = os.getcwd()
         os.chdir(self.code_dir)
 
         # remove previous files
         files = glob.glob('./*')
-        f:str
-        for f in files:
-            if f.endswith(".py"):
-                os.remove(f)
+        fname:str
+        for fname in files:
+            if fname.endswith(".py"):
+                os.remove(fname)
+
         # gen bdmon
+        hm:HierarchyModule
+        f:TextIO
         with open('bd_mon.py', 'w') as f:
             f.write(CodeSlugs.imports)
+            for hm in self.hmodule_list:
+                f.write("from {}{} import {}\n".format(self.code_prefix, hm.classname, hm.classname))
+
             f.write(CodeSlugs.bdmon_head)
 
+            # set up communication between modules TODO - make this a method
+            # start with "board-monitor"
+            src_name = 'board_monitor'
+            hm_list = self.find_modules_by_parent_name(src_name)
+            for hm in hm_list:
+                tgt_name = hm.name.replace("-controller", "")
+                tgt_cmd_obj_name = '{}_to_{}_cmd_obj'.format(src_name, tgt_name)
+                s = '    {} = CommandObject("{}", "{}")\n'.format(tgt_cmd_obj_name, src_name, hm.name)
+                s += '    de = DictionaryEntry({}.name, DictionaryTypes.COMMAND, {})\n'.format(tgt_cmd_obj_name, tgt_cmd_obj_name)
+                s += '    ddict.add_entry(de)\n\n'
+                f.write(s)
+
+                tgt_rsp_obj_name = '{}_to_{}_rsp_obj'.format(src_name, tgt_name)
+                s = '    {} = ResponseObject("{}", "{}")\n'.format(tgt_rsp_obj_name, src_name, hm.name)
+                s += '    de = DictionaryEntry({}.name, DictionaryTypes.RESPONSE, {})\n'.format(tgt_rsp_obj_name, tgt_rsp_obj_name)
+                s += '    ddict.add_entry(de)\n\n'
+                f.write(s)
+
+                s = '    {} = {}("{}", ddict)\n'.format(hm.name, hm.classname, hm.name)
+                s += '    {}.set_cmd_obj({})\n'.format(hm.name, tgt_cmd_obj_name)
+                s += '    {}.set_rsp_obj({})\n\n'.format(hm.name, tgt_rsp_obj_name)
+                f.write(s)
+
+
+
         # gen modules
-        hm:HierarchyModule
         for hm in self.hmodule_list:
             hm.generate_code()
         os.chdir(cwd)

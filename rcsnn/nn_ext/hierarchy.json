@@ -1,35 +1,36 @@
 {
   "system_name": "nn_example",
-  "bdmon": "board-monitor",
+  "bdmon": "board_monitor",
   "data_dir": "../data/",
   "code_dir": "../generated/",
+  "code_prefix": "rcsnn.generated.",
   "logfile": "test_log.csv",
-  "spreadsheet": "ship-controller.xlsx",
+  "spreadsheet": "ship_controller.xlsx",
   "log_step": 1,
   "module_list": [
     {
-      "name": "ship-controller",
+      "name": "ship_controller",
       "classname": "ShipController",
-      "parent": "board-monitor",
+      "parent": "board_monitor",
       "commands": ["INIT", "RUN", "TERMINATE"]
     },
     {
-      "name": "navigate-controller",
+      "name": "navigate_controller",
       "classname": "NavigateController",
-      "parent": "ship-controller",
+      "parent": "ship_controller",
       "commands": ["INIT", "MOVE_TO_TARGET", "TERMINATE"]
     },
     {
-      "name": "missile-controller",
+      "name": "missile_controller",
       "classname": "MissileController",
-      "parent": "ship-controller",
+      "parent": "ship_controller",
       "commands": ["INIT", "TARGET_SHIPS", "TERMINATE"]
     },
     {
       "quantity": 3,
-      "name": "missile-entity-controller",
+      "name": "missile_entity_controller",
       "classname": "MissileEntityController",
-      "parent": "missile-controller",
+      "parent": "missile_controller",
       "commands": ["INIT", "TARGET_SHIPS", "TERMINATE"]
     }
   ]
