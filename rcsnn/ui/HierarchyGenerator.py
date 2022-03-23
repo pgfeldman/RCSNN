@@ -35,6 +35,7 @@ def main():
 
 class HierarchyModule:
     quantity: int
+    index: int
     name: str
     classname: str
     parent: str
@@ -42,20 +43,15 @@ class HierarchyModule:
 
     def __init__(self, d:Dict):
         self.quantity = 1 #default
+        self.index = 0 #default
         self.__dict__.update(d)
 
-    def get_classnames(self) -> List:
-        l = [self.classname]
-        for i in range(1, self.quantity):
-            l.append("{}_{}".format(self.classname, i))
-        return l
-
     def generate_code(self):
-        for classname in self.get_classnames():
-            filename = "{}.py".format(classname)
-            with open(filename, 'w') as f:
-                f.write(CodeSlugs.imports)
-                f.write(CodeSlugs.module_head.format(classname))
+
+        filename = "{}.py".format(self.classname)
+        with open(filename, 'w') as f:
+            f.write(CodeSlugs.imports)
+            f.write(CodeSlugs.module_head.format(self.classname))
 
     def to_string(self) -> str:
         return "name = {}\n\tquantity = {}\n\tparent = {}\n\tcommands = {}".format(self.name, self.quantity, self.parent, self.commands)
@@ -90,8 +86,17 @@ class HierarchyGenerator:
             d:Dict
             for d in self.module_list:
                 hm = HierarchyModule(d)
-                print(hm.to_string())
                 self.hmodule_list.append(hm)
+                # TODO: Also check to see if the parent has a quantity over 1. We need to do combinatorials
+                if hm.quantity > 1:
+                    for i in range(1, hm.quantity):
+                        d2 = d.copy()
+                        d2['name'] = "{}_{}".format(d['name'], i)
+                        d2['classname'] = "{}_{}".format(d['classname'], i)
+                        d2['index'] = i
+                        hm2 = HierarchyModule(d2)
+                        self.hmodule_list.append(hm2)
+                    print(hm.to_string())
 
     def generate_code(self):
         cwd = os.getcwd()
