@@ -26,7 +26,7 @@
       "commands": ["INIT", "TARGET_SHIPS", "TERMINATE"]
     },
     {
-      "quantity": 5,
+      "quantity": 3,
       "name": "missile-entity-controller",
       "classname": "MissileEntityController",
       "parent": "missile-controller",

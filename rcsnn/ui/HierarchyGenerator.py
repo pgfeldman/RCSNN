@@ -1,5 +1,6 @@
 import json
 import os
+import glob
 from typing import List, Dict
 
 class CodeSlugs:
@@ -21,6 +22,9 @@ class {}(BaseController):
     def __init__(self, name: str, ddict: DataDictionary):
         super().__init__(name, ddict)'''
 
+    decision = '''\n\n    def decision_process(self):
+        command = self.evaluate_cmd()'''
+
     bdmon_head = '''
 def main():
     """
@@ -39,22 +43,51 @@ class HierarchyModule:
     name: str
     classname: str
     parent: str
+    children:List
     commands:List
 
     def __init__(self, d:Dict):
         self.quantity = 1 #default
         self.index = 0 #default
+        self.children = []
         self.__dict__.update(d)
 
-    def generate_code(self):
+    def find_children(self, hm_list:List):
+        hm:HierarchyModule
+        for hm in hm_list:
+            if hm != self:
+                if self.name == hm.parent:
+                    self.children.append(hm)
 
+    def generate_code(self):
         filename = "{}.py".format(self.classname)
         with open(filename, 'w') as f:
             f.write(CodeSlugs.imports)
             f.write(CodeSlugs.module_head.format(self.classname))
 
+            f.write(CodeSlugs.decision)
+            cmd:str = self.commands[0]
+            s = '''\n        if command == Commands.{}:
+            self.{}_task()'''.format(cmd, cmd.lower())
+            f.write(s)
+            for i in range(1, len(self.commands)):
+                cmd = self.commands[i]
+                s = '''\n        elif command == Commands.{}:\n            self.{}_task()'''.format(cmd, cmd.lower())
+                f.write(s)
+
+            for cmd in self.commands:
+                s = "\n\n    def {}_task(self):\n        pass".format(cmd.lower())
+                f.write(s)
+
     def to_string(self) -> str:
-        return "name = {}\n\tquantity = {}\n\tparent = {}\n\tcommands = {}".format(self.name, self.quantity, self.parent, self.commands)
+        s = "name = {}\n\tquantity = {} of {}\n\tparent = {}\n\tcommands = {}".format(self.name, self.index+1, self.quantity, self.parent, self.commands)
+        if len(self.children) > 0:
+            s += "\n\tchildren:"
+            hm:HierarchyModule
+            for hm in self.children:
+                s += "\n\t\t{}".format(hm.name)
+        return s
+
 
 
 class HierarchyGenerator:
@@ -83,6 +116,7 @@ class HierarchyGenerator:
             print(json.dumps(self.hierarchy_dict, indent=4, sort_keys=True))
             self.__dict__.update(self.hierarchy_dict)
             #load the modules
+            hm:HierarchyModule
             d:Dict
             for d in self.module_list:
                 hm = HierarchyModule(d)
@@ -96,11 +130,21 @@ class HierarchyGenerator:
                         d2['index'] = i
                         hm2 = HierarchyModule(d2)
                         self.hmodule_list.append(hm2)
-                    print(hm.to_string())
+
+            for hm in self.hmodule_list:
+                hm.find_children(self.hmodule_list)
+                print(hm.to_string())
 
     def generate_code(self):
         cwd = os.getcwd()
         os.chdir(self.code_dir)
+
+        # remove previous files
+        files = glob.glob('./*')
+        f:str
+        for f in files:
+            if f.endswith(".py"):
+                os.remove(f)
         # gen bdmon
         with open('bd_mon.py', 'w') as f:
             f.write(CodeSlugs.imports)
