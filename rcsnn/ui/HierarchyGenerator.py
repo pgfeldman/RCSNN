@@ -13,6 +13,7 @@ from rcsnn.base.CommandObject import CommandObject
 from rcsnn.base.Commands import Commands
 from rcsnn.base.ResponseObject import ResponseObject
 from rcsnn.base.Responses import Responses
+from rcsnn.base.States import States
 from rcsnn.base.BaseController import BaseController\n\n'''
 
     module_head = '''
@@ -38,6 +39,26 @@ def main():
     ddict.add_entry(elapsed_time_entry)
     
 '''
+    bdmon_loop = '''
+    {}.set(Commands.{}, 1)
+    done = False
+    current_step = 0
+    while not done:
+        print("\\nstep[",current_step,"]---------------")
+        elapsed_time_entry.data += 0.1
+        ddict.store(skip = {})
+        ddict.log_to_csv("testlog.csv", {})
+    '''
+    bdmon_tail = '''        current_step += 1
+
+        # for debugging
+        if current_step == 100:
+            done = True
+
+    ddict.to_excel("../../data/", "{}.xlsx")
+
+if __name__ == "__main__":
+    main()'''
 
 class HierarchyModule:
     quantity: int
@@ -47,6 +68,8 @@ class HierarchyModule:
     parent: str
     children:List
     commands:List
+    cmd_obj_name:str
+    rsp_obj_name:str
 
     def __init__(self, d:Dict):
         self.quantity = 1 #default
@@ -85,8 +108,42 @@ class HierarchyModule:
                 f.write(s)
 
             for cmd in self.commands:
-                s = "\n\n    def {}_task(self):\n        pass".format(cmd.lower())
+                self.generate_task(cmd, f)
+
+
+    def generate_task(self, cmd_str, f:TextIO):
+        s = "\n\n    def {}_task(self):\n".format(cmd_str.lower())
+        f.write(s)
+        no_child_tasks = True
+        child_hm:HierarchyModule
+        for child_hm in self.children:
+            s = "        {} = self.ddict.get_entry('{}').data\n".format(child_hm.cmd_obj_name, child_hm.cmd_obj_name)
+            f.write(s)
+            s = "        {} = self.ddict.get_entry('{}').data\n".format(child_hm.rsp_obj_name, child_hm.rsp_obj_name)
+            f.write(s)
+
+        s = '''        if self.cur_state == States.NEW_COMMAND:
+            print("{}:{} NEW_COMMAND ")
+            self.cur_state = States.S0
+            self.rsp.set(Responses.EXECUTING, self.cmd.serial)\n'''.format(self.name, cmd_str)
+        f.write(s)
+        state_num = 1
+        for child_hm in self.children:
+            if cmd_str in child_hm.commands:
+                s = "            {}.set(Commands.{}, {}.next_serial()+1)\n".format(child_hm.cmd_obj_name, cmd_str, child_hm.cmd_obj_name)
                 f.write(s)
+
+            '''self.set_all_child_cmd(Commands.INIT)
+            self.cur_state = States.S0
+            self.rsp.set(Responses.EXECUTING, self.cmd.serial)
+        elif self.cur_state == States.S0 and self.test_all_child_rsp(Responses.DONE):
+            print("{}:DONE")
+            self.cur_state = States.NOP
+            self.rsp.set(Responses.DONE)'''
+            #f.write(s)
+
+        if no_child_tasks:
+            f.write("        pass")
 
     def to_string(self) -> str:
         s = "name = {}\n\tquantity = {} of {}\n\tparent = {}\n\tcommands = {}".format(self.name, self.index+1, self.quantity, self.parent, self.commands)
@@ -173,43 +230,82 @@ class HierarchyGenerator:
                 os.remove(fname)
 
         # gen bdmon
-        hm:HierarchyModule
+        hm_child:HierarchyModule
         f:TextIO
+        top_command_dict = {}
         with open('bd_mon.py', 'w') as f:
             f.write(CodeSlugs.imports)
-            for hm in self.hmodule_list:
-                f.write("from {}{} import {}\n".format(self.code_prefix, hm.classname, hm.classname))
+            for hm_child in self.hmodule_list:
+                f.write("from {}{} import {}\n".format(self.code_prefix, hm_child.classname, hm_child.classname))
 
             f.write(CodeSlugs.bdmon_head)
 
             # set up communication between modules TODO - make this a method
             # start with "board-monitor"
-            src_name = 'board_monitor'
-            hm_list = self.find_modules_by_parent_name(src_name)
-            for hm in hm_list:
-                tgt_name = hm.name.replace("-controller", "")
-                tgt_cmd_obj_name = '{}_to_{}_cmd_obj'.format(src_name, tgt_name)
-                s = '    {} = CommandObject("{}", "{}")\n'.format(tgt_cmd_obj_name, src_name, hm.name)
-                s += '    de = DictionaryEntry({}.name, DictionaryTypes.COMMAND, {})\n'.format(tgt_cmd_obj_name, tgt_cmd_obj_name)
+            # parent_name = 'board_monitor'
+            # hm_child_list = self.find_modules_by_parent_name(parent_name)
+            # for hm_child in hm_child_list:
+            for hm_child in self.hmodule_list:
+                parent_name = hm_child.parent.replace("_controller", "")
+                child_name = hm_child.name.replace("_controller", "")
+                hm_child.cmd_obj_name = '{}_to_{}_cmd_obj'.format(parent_name, child_name)
+                s = '    {} = CommandObject("{}", "{}")\n'.format(hm_child.cmd_obj_name, parent_name, hm_child.name)
+                s += '    de = DictionaryEntry({}.name, DictionaryTypes.COMMAND, {})\n'.format(hm_child.cmd_obj_name, hm_child.cmd_obj_name)
                 s += '    ddict.add_entry(de)\n\n'
                 f.write(s)
 
-                tgt_rsp_obj_name = '{}_to_{}_rsp_obj'.format(src_name, tgt_name)
-                s = '    {} = ResponseObject("{}", "{}")\n'.format(tgt_rsp_obj_name, src_name, hm.name)
-                s += '    de = DictionaryEntry({}.name, DictionaryTypes.RESPONSE, {})\n'.format(tgt_rsp_obj_name, tgt_rsp_obj_name)
+                hm_child.rsp_obj_name = '{}_to_{}_rsp_obj'.format(parent_name, child_name)
+                s = '    {} = ResponseObject("{}", "{}")\n'.format(hm_child.rsp_obj_name, parent_name, hm_child.name)
+                s += '    de = DictionaryEntry({}.name, DictionaryTypes.RESPONSE, {})\n'.format(hm_child.rsp_obj_name, hm_child.rsp_obj_name)
                 s += '    ddict.add_entry(de)\n\n'
                 f.write(s)
 
-                s = '    {} = {}("{}", ddict)\n'.format(hm.name, hm.classname, hm.name)
-                s += '    {}.set_cmd_obj({})\n'.format(hm.name, tgt_cmd_obj_name)
-                s += '    {}.set_rsp_obj({})\n\n'.format(hm.name, tgt_rsp_obj_name)
+                s = '    {} = {}("{}", ddict)\n'.format(hm_child.name, hm_child.classname, hm_child.name)
+                s += '    {}.set_cmd_obj({})\n'.format(hm_child.name, hm_child.cmd_obj_name)
+                s += '    {}.set_rsp_obj({})\n\n'.format(hm_child.name, hm_child.rsp_obj_name)
                 f.write(s)
+
+                if parent_name == 'board_monitor':
+                    top_command_dict = {'name': hm_child.cmd_obj_name, 'child_name':child_name,
+                                        'cmd': hm_child.commands[0], 'hmodule':hm_child,
+                                        'cmd_obj_name':hm_child.cmd_obj_name, 'rsp_obj_name':hm_child.rsp_obj_name}
+
+            # set up loop
+            hm:HierarchyModule
+            s = CodeSlugs.bdmon_loop.format(top_command_dict['name'], top_command_dict['cmd'], self.log_step, self.log_step)
+            f.write(s)
+            hm:HierarchyModule
+            f.write("\n")
+            for hm in self.hmodule_list:
+                f.write("        {}.step()\n".format(hm.name))
+
+            hm = top_command_dict['hmodule']
+            # gp through all the commands that the top controller takes
+            for i in range(len(hm.commands)-1):
+                cur_cmd =  hm.commands[i]
+                next_cmd = hm.commands[i+1]
+                conditional = "if"
+                if i > 0:
+                    conditional = "elif"
+                s = "        {} {}.test(Commands.{}) and {}.test(Responses.DONE):\n".format(conditional, top_command_dict['cmd_obj_name'], cur_cmd, top_command_dict['rsp_obj_name'])
+                f.write(s)
+                s = "                {}.set(Commands.{}, {})\n".format(top_command_dict['cmd_obj_name'], next_cmd, i+1)
+                f.write(s)
+
+            f.write(CodeSlugs.bdmon_tail.format(top_command_dict['child_name']))
+
+
+            # if top_to_ship_cmd_obj.test(Commands.INIT) and ship_ctrl.rsp.test(Responses.DONE):
+            #     top_to_ship_cmd_obj.set(Commands.RUN, 2)
+            # elif top_to_ship_cmd_obj.test(Commands.RUN) and ship_ctrl.rsp.test(Responses.DONE): # handle new targets
+            #     top_to_ship_cmd_obj.set(Commands.TERMINATE, 3)
+            # elif top_to_ship_cmd_obj.test(Commands.TERMINATE) and ship_ctrl.rsp.test(Responses.DONE):
 
 
 
         # gen modules
-        for hm in self.hmodule_list:
-            hm.generate_code()
+        for hm_child in self.hmodule_list:
+            hm_child.generate_code()
         os.chdir(cwd)
 
 
