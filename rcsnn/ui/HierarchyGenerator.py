@@ -116,6 +116,7 @@ class HierarchyModule:
         f.write(s)
         no_child_tasks = True
         child_hm:HierarchyModule
+        state_num = 0
         for child_hm in self.children:
             s = "        {} = self.ddict.get_entry('{}').data\n".format(child_hm.cmd_obj_name, child_hm.cmd_obj_name)
             f.write(s)
@@ -124,16 +125,27 @@ class HierarchyModule:
 
         s = '''        if self.cur_state == States.NEW_COMMAND:
             print("{}:{} NEW_COMMAND ")
-            self.cur_state = States.S0
-            self.rsp.set(Responses.EXECUTING, self.cmd.serial)\n'''.format(self.name, cmd_str)
+            self.cur_state = States.S{}
+            self.rsp.set(Responses.EXECUTING, self.cmd.serial)\n'''.format(self.name, cmd_str, state_num)
         f.write(s)
-        state_num = 1
-        for child_hm in self.children:
-            if cmd_str in child_hm.commands:
-                s = "            {}.set(Commands.{}, {}.next_serial()+1)\n".format(child_hm.cmd_obj_name, cmd_str, child_hm.cmd_obj_name)
+        cur_child:HierarchyModule
+        next_child:HierarchyModule
+        for i in range(len(self.children)):
+            cur_child = self.children[i]
+            if cmd_str in cur_child.commands:
+                s = "            {}.set(Commands.{}, {}.next_serial()+1)\n".format(cur_child.cmd_obj_name, cmd_str, cur_child.cmd_obj_name)
                 f.write(s)
-
-            '''self.set_all_child_cmd(Commands.INIT)
+                s = "        elif self.cur_state == States.S{} and {}.test(Responses.DONE):\n".format(state_num, cur_child.rsp_obj_name)
+                f.write(s)
+                state_num += 1
+                s = "            self.cur_state = States.S{}\n".format(state_num)
+                f.write(s)
+        s = "        elif self.cur_state == States.S{}:\n".format(state_num)
+        f.write(s)
+        state_num += 1
+        s = '''            print("{}:DONE")\n            self.cur_state = States.S{}\n            self.rsp.set(Responses.DONE)\n'''.format(self.name, state_num)
+        f.write(s)
+        '''self.set_all_child_cmd(Commands.INIT)
             self.cur_state = States.S0
             self.rsp.set(Responses.EXECUTING, self.cmd.serial)
         elif self.cur_state == States.S0 and self.test_all_child_rsp(Responses.DONE):
@@ -142,8 +154,7 @@ class HierarchyModule:
             self.rsp.set(Responses.DONE)'''
             #f.write(s)
 
-        if no_child_tasks:
-            f.write("        pass")
+
 
     def to_string(self) -> str:
         s = "name = {}\n\tquantity = {} of {}\n\tparent = {}\n\tcommands = {}".format(self.name, self.index+1, self.quantity, self.parent, self.commands)
