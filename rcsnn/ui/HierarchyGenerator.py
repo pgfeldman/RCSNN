@@ -145,16 +145,6 @@ class HierarchyModule:
         state_num += 1
         s = '''            print("{}:DONE")\n            self.cur_state = States.S{}\n            self.rsp.set(Responses.DONE)\n'''.format(self.name, state_num)
         f.write(s)
-        '''self.set_all_child_cmd(Commands.INIT)
-            self.cur_state = States.S0
-            self.rsp.set(Responses.EXECUTING, self.cmd.serial)
-        elif self.cur_state == States.S0 and self.test_all_child_rsp(Responses.DONE):
-            print("{}:DONE")
-            self.cur_state = States.NOP
-            self.rsp.set(Responses.DONE)'''
-            #f.write(s)
-
-
 
     def to_string(self) -> str:
         s = "name = {}\n\tquantity = {} of {}\n\tparent = {}\n\tcommands = {}".format(self.name, self.index+1, self.quantity, self.parent, self.commands)
@@ -257,18 +247,14 @@ class HierarchyGenerator:
             # hm_child_list = self.find_modules_by_parent_name(parent_name)
             # for hm_child in hm_child_list:
             for hm_child in self.hmodule_list:
-                parent_name = hm_child.parent.replace("_controller", "")
-                child_name = hm_child.name.replace("_controller", "")
-                hm_child.cmd_obj_name = '{}_to_{}_cmd_obj'.format(parent_name, child_name)
+                parent_name = hm_child.parent
+                child_name = hm_child.name
+                hm_child.cmd_obj_name = 'CMD_{}_to_{}'.format(parent_name, child_name)
                 s = '    {} = CommandObject("{}", "{}")\n'.format(hm_child.cmd_obj_name, parent_name, hm_child.name)
-                s += '    de = DictionaryEntry({}.name, DictionaryTypes.COMMAND, {})\n'.format(hm_child.cmd_obj_name, hm_child.cmd_obj_name)
-                s += '    ddict.add_entry(de)\n\n'
                 f.write(s)
 
-                hm_child.rsp_obj_name = '{}_to_{}_rsp_obj'.format(parent_name, child_name)
+                hm_child.rsp_obj_name = 'RSP_{}_to_{}'.format(child_name, parent_name)
                 s = '    {} = ResponseObject("{}", "{}")\n'.format(hm_child.rsp_obj_name, parent_name, hm_child.name)
-                s += '    de = DictionaryEntry({}.name, DictionaryTypes.RESPONSE, {})\n'.format(hm_child.rsp_obj_name, hm_child.rsp_obj_name)
-                s += '    ddict.add_entry(de)\n\n'
                 f.write(s)
 
                 s = '    {} = {}("{}", ddict)\n'.format(hm_child.name, hm_child.classname, hm_child.name)
@@ -280,6 +266,12 @@ class HierarchyGenerator:
                     top_command_dict = {'name': hm_child.cmd_obj_name, 'child_name':child_name,
                                         'cmd': hm_child.commands[0], 'hmodule':hm_child,
                                         'cmd_obj_name':hm_child.cmd_obj_name, 'rsp_obj_name':hm_child.rsp_obj_name}
+
+            f.write("\n    # Link the modules")
+            for hm_child in self.hmodule_list:
+                if parent_name != 'board_monitor':
+                    s = "    BaseController.link_parent_child({}, {}, ddict)\n".format(hm_child.parent, hm_child.name)
+                    f.write(s)
 
             # set up loop
             hm:HierarchyModule
