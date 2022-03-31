@@ -292,7 +292,7 @@ class HierarchyGenerator:
                     conditional = "elif"
                 s = "        {} {}.test(Commands.{}) and {}.test(Responses.DONE):\n".format(conditional, top_command_dict['cmd_obj_name'], cur_cmd, top_command_dict['rsp_obj_name'])
                 f.write(s)
-                s = "                {}.set(Commands.{}, {})\n".format(top_command_dict['cmd_obj_name'], next_cmd, i+1)
+                s = "                {}.set(Commands.{}, {})\n".format(top_command_dict['cmd_obj_name'], next_cmd, i+2)
                 f.write(s)
 
             f.write(CodeSlugs.bdmon_tail.format(top_command_dict['child_name']))
