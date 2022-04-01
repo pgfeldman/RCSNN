@@ -49,7 +49,8 @@ def main():
         ddict.store(skip = {})
         ddict.log_to_csv("testlog.csv", {})
     '''
-    bdmon_tail = '''        current_step += 1
+    bdmon_tail = '''            done = True
+        current_step += 1
 
         # for debugging
         if current_step == 100:
@@ -292,19 +293,10 @@ class HierarchyGenerator:
                     conditional = "elif"
                 s = "        {} {}.test(Commands.{}) and {}.test(Responses.DONE):\n".format(conditional, top_command_dict['cmd_obj_name'], cur_cmd, top_command_dict['rsp_obj_name'])
                 f.write(s)
-                s = "                {}.set(Commands.{}, {})\n".format(top_command_dict['cmd_obj_name'], next_cmd, i+2)
+                s = "            {}.set(Commands.{}, {})\n".format(top_command_dict['cmd_obj_name'], next_cmd, i+2)
                 f.write(s)
 
             f.write(CodeSlugs.bdmon_tail.format(top_command_dict['child_name']))
-
-
-            # if top_to_ship_cmd_obj.test(Commands.INIT) and ship_ctrl.rsp.test(Responses.DONE):
-            #     top_to_ship_cmd_obj.set(Commands.RUN, 2)
-            # elif top_to_ship_cmd_obj.test(Commands.RUN) and ship_ctrl.rsp.test(Responses.DONE): # handle new targets
-            #     top_to_ship_cmd_obj.set(Commands.TERMINATE, 3)
-            # elif top_to_ship_cmd_obj.test(Commands.TERMINATE) and ship_ctrl.rsp.test(Responses.DONE):
-
-
 
         # gen modules
         for hm_child in self.hmodule_list:

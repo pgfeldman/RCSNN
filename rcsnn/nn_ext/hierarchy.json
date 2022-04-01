@@ -12,7 +12,7 @@
       "name": "ship_controller",
       "classname": "ShipController",
       "parent": "board_monitor",
-      "commands": ["INIT", "RUN", "TERMINATE"]
+      "commands": ["INIT", "MOVE_TO_TARGET", "TARGET_SHIPS","TERMINATE"]
     },
     {
       "name": "navigate_controller",
