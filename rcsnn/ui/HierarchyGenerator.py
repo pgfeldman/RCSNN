@@ -175,34 +175,41 @@ class HierarchyGenerator:
 
     def __init__(self):
         print("HierarchyGenerator")
+        self.reset()
+
+    def reset(self):
         self.hmodule_list = []
         self.hierarchy_dict = {}
+
+    def config_from_dict(self, d:Dict):
+        self.hierarchy_dict = d
+        print(json.dumps(self.hierarchy_dict, indent=4, sort_keys=True))
+        self.__dict__.update(self.hierarchy_dict)
+        #load the modules
+        hm:HierarchyModule
+        d:Dict
+        for d in self.module_list:
+            hm = HierarchyModule(d)
+            self.hmodule_list.append(hm)
+            # TODO: Also check to see if the parent has a quantity over 1. We need to do combinatorials
+            if hm.quantity > 1:
+                for i in range(1, hm.quantity):
+                    d2 = d.copy()
+                    d2['name'] = "{}_{}".format(d['name'], i)
+                    d2['classname'] = "{}_{}".format(d['classname'], i)
+                    d2['index'] = i
+                    hm2 = HierarchyModule(d2)
+                    self.hmodule_list.append(hm2)
+
+        for hm in self.hmodule_list:
+            hm.find_children(self.hmodule_list)
+            print(hm.to_string())
 
     def read_config_file(self, filename:str):
         print("loading{}".format(filename))
         with open(filename) as f:
-            self.hierarchy_dict = json.load(f)
-            print(json.dumps(self.hierarchy_dict, indent=4, sort_keys=True))
-            self.__dict__.update(self.hierarchy_dict)
-            #load the modules
-            hm:HierarchyModule
-            d:Dict
-            for d in self.module_list:
-                hm = HierarchyModule(d)
-                self.hmodule_list.append(hm)
-                # TODO: Also check to see if the parent has a quantity over 1. We need to do combinatorials
-                if hm.quantity > 1:
-                    for i in range(1, hm.quantity):
-                        d2 = d.copy()
-                        d2['name'] = "{}_{}".format(d['name'], i)
-                        d2['classname'] = "{}_{}".format(d['classname'], i)
-                        d2['index'] = i
-                        hm2 = HierarchyModule(d2)
-                        self.hmodule_list.append(hm2)
-
-            for hm in self.hmodule_list:
-                hm.find_children(self.hmodule_list)
-                print(hm.to_string())
+            d = json.load(f)
+            self.config_from_dict(d)
 
     def find_modules_by_parent_name(self, name:str) -> List[HierarchyModule]:
         l = []
@@ -306,7 +313,7 @@ class HierarchyGenerator:
 
 def main():
     print(os.getcwd())
-    hg = HierarchyGenerator();
+    hg = HierarchyGenerator()
     hg.read_config_file("../nn_ext/hierarchy.json")
     hg.generate_code()
 
