@@ -3,6 +3,7 @@
   "bdmon": "board_monitor",
   "data_dir": "../data/",
   "code_dir": "../generated/",
+  "root_dir": "../",
   "code_prefix": "rcsnn.generated.",
   "logfile": "test_log.csv",
   "spreadsheet": "ship_controller.xlsx",

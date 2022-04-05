@@ -1,6 +1,8 @@
 import tkinter as tk
 import tkinter.messagebox as tkm
 import json
+import os
+import re
 from tkinter import filedialog
 from rcsnn.tkUtils.TextField import TextField
 from rcsnn.tkUtils.DataField import DataField
@@ -38,6 +40,7 @@ class HierarchyApp(AppBase):
         menubar.add_cascade(menu=menu_file, label='File')
         menu_file.add_command(label='Load Hierarchy', command=self.load_callback)
         menu_file.add_command(label='Save Hierarchy', command=self.save_json_callback)
+        menu_file.add_command(label='Set Code Directory', command=self.set_code_dir_callback)
         menu_file.add_command(label='Generate Code', command=self.generate_code_callback)
         menu_file.add_command(label='Exit', command=self.terminate)
 
@@ -50,6 +53,9 @@ class HierarchyApp(AppBase):
                 self.hierarchy_json = json.load(f)
                 s = json.dumps(self.hierarchy_json, indent=4, sort_keys=False)
                 self.json_text_field.set_text(s)
+                if 'code_dir' in self.hierarchy_json:
+                    abspath = os.path.abspath(self.hierarchy_json['code_dir'])
+                    self.output_dir_field.set_text(abspath)
 
 
     def save_json_callback(self):
@@ -62,7 +68,32 @@ class HierarchyApp(AppBase):
             filename = result.name
             print("saving {}".format(filename))
 
+    def set_code_dir_callback(self):
+        cwd = os.getcwd()
+        print("Current working dir = {}".format(cwd))
+        filename = filedialog.askdirectory(initialdir=cwd, title="Set code generation directory")
+        if filename:
+            print("Set generation dir to {}".format(filename))
+            self.output_dir_field.set_text(filename)
+
+    def set_code_package(self):
+        if self.hierarchy_json != None:
+            split_regex = re.compile(r"\\|\/")
+            self.hierarchy_json['code_dir'] = self.output_dir_field.get_text()
+            root_dir:str = os.path.abspath(self.hierarchy_json['root_dir'])
+            code_dir:str = self.output_dir_field.get_text()
+            root_list = split_regex.split(root_dir)
+            code_list = split_regex.split(code_dir)
+            root = root_list[-1]
+            root_index = code_list.index(root)
+            for i in range(root_index+1, len(code_list)):
+                root += "."+code_list[i]
+            root += "."
+            self.hierarchy_json['code_prefix'] = root
+            print("root = {}".format(root))
+
     def generate_code_callback(self):
+        self.set_code_package()
         if self.hierarchy_json != None:
             print(json.dumps(self.hierarchy_json, indent=2, sort_keys=False))
             self.hg = HierarchyGenerator()
