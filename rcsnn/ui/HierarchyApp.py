@@ -85,12 +85,13 @@ class HierarchyApp(AppBase):
             root_list = split_regex.split(root_dir)
             code_list = split_regex.split(code_dir)
             root = root_list[-1]
-            root_index = code_list.index(root)
-            for i in range(root_index+1, len(code_list)):
-                root += "."+code_list[i]
-            root += "."
-            self.hierarchy_json['code_prefix'] = root
-            print("root = {}".format(root))
+            if root in code_list:
+                root_index = code_list.index(root)
+                for i in range(root_index+1, len(code_list)):
+                    root += "."+code_list[i]
+                root += "."
+                self.hierarchy_json['code_prefix'] = root
+                print("root = {}".format(root))
 
     def generate_code_callback(self):
         self.set_code_package()
