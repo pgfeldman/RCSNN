@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinter.font import Font
 from typing import List, Any
 
 class DataField:
@@ -7,15 +8,19 @@ class DataField:
     value = None
     tk_label = None
     tk_entry = None
+    default_font:Font
     row = 0
 
     def __init__(self, parent:'ttk.Frame', row:int, label:str, width:int = 20, password:bool = False, label_width:int = 16):
+        self.default_font = Font(family='courier', size = 9)
         self.row = row
         self.tk_label = tk.Label(parent, text=label, width=label_width, anchor="w")#, background="pink")
+        self.tk_label.configure(font=self.default_font)
         if password:
             self.tk_entry = tk.Entry(parent, show = "*", width=width, anchor="w")
         else:
             self.tk_entry = tk.Entry(parent, width=width)
+        self.tk_entry.configure(font=self.default_font)
 
 
         self.tk_label.grid(column=0, row=row, sticky=(tk.W), padx=5)

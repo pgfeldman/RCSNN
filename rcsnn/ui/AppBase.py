@@ -2,6 +2,7 @@ import getpass
 import inspect
 import re
 import tkinter as tk
+from tkinter.font import Font
 import json
 from tkinter import filedialog
 from datetime import datetime
@@ -15,6 +16,7 @@ from rcsnn.utils.SharedObjects import SharedObjects
 
 class AppBase(tk.Tk):
     experiment_field:DataField
+    default_font:Font
     logfile:str
     app_name:str
     app_version:str
@@ -24,6 +26,7 @@ class AppBase(tk.Tk):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.default_font = Font(family='helvetica', size = 12)
         self.so = SharedObjects()
         self.dp = ConsoleDprint()
         self.setup_app()

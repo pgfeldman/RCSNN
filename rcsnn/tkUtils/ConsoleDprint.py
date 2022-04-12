@@ -1,13 +1,16 @@
 import tkinter as tk
 from tkinter import ttk
-import tkinter.font as tkf
+from tkinter.font import Font
 import textwrap
 
 class ConsoleDprint:
     main_console:tk.Text
+    default_font:Font
+
     dcount:int = 0
     def __init__(self, console:tk.Text = None):
         self.set_console(console)
+        self.default_font = Font(family='courier', size = 9)
 
     def set_console(self, console:tk.Text = None):
         self.main_console = console
@@ -27,6 +30,7 @@ class ConsoleDprint:
     def create_tk_console(self, parent, row:int, height:int = 5, char_width:int = 100, set_console:bool = True) -> tk.Text:
         console_wrapper = tk.LabelFrame(parent, text="Console")
         main_console = tk.Text(console_wrapper, width=char_width, height=height, wrap=tk.WORD, borderwidth=2, relief="groove")
+        main_console.configure(font=self.default_font)
         console_wrapper.grid(row=row, column=0, columnspan = 2, sticky="nsew", padx=5, pady=2)
         text_scrollbar = ttk.Scrollbar(console_wrapper, orient=tk.VERTICAL, command=main_console.yview)
         main_console['yscrollcommand'] = text_scrollbar.set

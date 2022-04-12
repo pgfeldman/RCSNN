@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinter.font import Font
 from typing import List, Callable, Union
 
 import rcsnn.tkUtils.ConsoleDprint as DP
@@ -25,11 +26,13 @@ class TopicCombo():
                  button_label:str = "Set Group", combo_width:int = 30, label_width:int=20):
         self.parent = parent
         self.set_dprint(dprint)
+        self.default_font = Font(family='courier', size = 9)
         self.row = row
         self.combo_width = combo_width
         self.combo_str_var = tk.StringVar(value="Option 4")
         self.combo_vals = []
         self.tk_label = ttk.Label(parent, text=label, width=label_width)
+        self.tk_label.configure(font=self.default_font)
         self.combo_callback_fn = None
         self.button_callback_fn = None
 
@@ -41,6 +44,7 @@ class TopicCombo():
         self.button_str_var = tk.StringVar()
         self.set_button_text(button_label)
         self.tk_button = ttk.Button(self.wrapper, textvariable=self.button_str_var, command=self.on_button_clicked)
+        self.tk_button.configure(font=self.default_font)
 
         self.tk_label.grid(column=0, row=row, sticky=(tk.W), padx=5)
         self.wrapper.grid(column=1, row=row, sticky=("nsew"))
@@ -50,6 +54,7 @@ class TopicCombo():
 
     def add_button(self, name:str, command:Callable) -> ttk.Button:
         b = ttk.Button(self.wrapper, text=name, command=command)
+        b.configure(font=self.default_font)
         b.grid(column=self.col, row=0, sticky=(tk.N, tk.W), pady=2, padx=5)
         self.col += 1
         return b

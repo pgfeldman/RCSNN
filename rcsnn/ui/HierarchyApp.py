@@ -18,8 +18,8 @@ class HierarchyApp(AppBase):
     hg:HierarchyGenerator
 
     def setup_app(self):
-        self.app_name = "HierarchyBuilder"
-        self.app_version = "3.21.2022"
+        self.app_name = "RCSNN Hierarchy App"
+        self.app_version = "4.11.2022"
         self.geom = (600, 500)
         self.hierarchy_json = None
 

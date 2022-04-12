@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinter.font import Font
 from typing import List, Callable, Union
 
 import rcsnn.tkUtils.ConsoleDprint as DP
@@ -10,6 +11,7 @@ class TopicComboExt():
     tk_text = tk.Text
     tk_combo = ttk.Combobox
     wrapper:tk.Frame
+    default_font:Font
     row = 0
     col:int = 0
     combo_str_var:tk.StringVar
@@ -23,18 +25,20 @@ class TopicComboExt():
     def __init__(self, parent:'tk.Frame', row:int, label:str, dprint:DP.ConsoleDprint,
                  entry_width:int = 30, combo_width:int = 30, label_width:int=20, use_text_field:bool = False):
         self.parent = parent
-
+        self.default_font = Font(family='courier', size = 9)
         self.set_dprint(dprint)
         self.row = row
         self.combo_str_var = tk.StringVar(value="Option 4")
         self.combo_vals = []
         self.tk_label = ttk.Label(parent, text=label, width=label_width)
+        self.tk_label.configure(font=self.default_font)
         self.use_text_field = use_text_field
         self.callback_fn = None
 
         self.wrapper = tk.Frame(parent)
         if self.use_text_field == True:
             self.tk_text = tk.Text(self.wrapper, width=entry_width, height=4, wrap=tk.WORD, borderwidth=2, relief="groove")
+            self.tk_text.configure(font=self.default_font)
         else:
             self.tk_entry = ttk.Entry(self.wrapper, width=entry_width)
         self.tk_combo = ttk.Combobox(self.wrapper, values=self.combo_vals, width=combo_width)
@@ -51,6 +55,7 @@ class TopicComboExt():
 
     def add_button(self, name:str, command:Callable) -> ttk.Button:
         b = ttk.Button(self.wrapper, text=name, command=command)
+        b.configure(font=self.default_font)
         b.grid(column=self.col, row=0, sticky=(tk.N, tk.W), pady=2, padx=5)
         self.col += 1
         return b

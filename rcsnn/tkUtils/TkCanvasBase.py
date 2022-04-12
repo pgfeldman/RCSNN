@@ -32,6 +32,7 @@ class TkCanvasBase:
     select_color = "red"
     edge_color = "lightgrey"
     font:font
+    default_font:font.Font
 
     def __init__(self, root:Tk, version:str):
         self.reset()
@@ -53,6 +54,7 @@ class TkCanvasBase:
     def reset(self):
         print("TkCanvasBase.reset()")
         self.root:Tk = None
+        self.default_font = font.Font(family='courier', size = 9)
         self.font = font.Font(family='Helvetica', size=12)
         self.mainframe = None
         self.main_console = None

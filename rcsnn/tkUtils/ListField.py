@@ -1,11 +1,13 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinter.font import Font
 from typing import Union, List, Callable
 
 
 
 class ListField:
     name:str = "unset"
+    default_font:Font
     tk_labelttk:tk.Label = None
     tk_list:tk.Listbox = None
     row = 0
@@ -19,6 +21,7 @@ class ListField:
     static_list:bool = False
 
     def __init__(self, parent:'ttk.Frame', row:int, label:str, width:int = 20, height: int = 3, selectmode=tk.BROWSE, label_width:int=20, static_list:bool = False):
+        self.default_font = Font(family='courier', size = 9)
         self.static_list = static_list
         self.callback_fn = None
         self.sel_list = []
@@ -27,6 +30,7 @@ class ListField:
         self.lvar = tk.StringVar(value=label)
         self.row = row
         self.tk_label = ttk.Label(parent, textvariable=self.lvar, width=label_width)
+        self.tk_label.configure(font=self.default_font)
         list_wrapper = tk.Frame(parent, borderwidth=2)
         self.tk_list = tk.Listbox(list_wrapper, listvariable=self.tvar, width=width, height=height, selectmode=selectmode)
         self.tk_list.bind('<<ListboxSelect>>', self.on_selected)

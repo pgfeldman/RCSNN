@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinter.font import Font
 import random
 import re
 from typing import List, Callable
@@ -10,6 +11,7 @@ class TextField:
     value = None
     tk_label:ttk.Label
     tk_text:tk.Text
+    default_font:Font
     lvar:tk.StringVar = None
     row = 0
     reference_text:str
@@ -19,11 +21,14 @@ class TextField:
     modified_callback:Callable
 
     def __init__(self, parent:'ttk.Frame', row:int, label:str, width:int = 20, height: int = 3, label_width:int=20):
+        self.default_font = Font(family='courier', size = 9)
         self.row = row
         self.lvar = tk.StringVar(value=label)
         self.tk_label = ttk.Label(parent, textvariable=self.lvar, width=label_width)
+        self.tk_label.configure(font=self.default_font)
         text_wrapper = tk.Frame(parent, borderwidth=2)
         self.tk_text = tk.Text(text_wrapper, width=width, height=height, wrap=tk.WORD, borderwidth=2, relief="groove")
+        self.tk_text.configure(font=self.default_font)
         #self.tk_text.bind('<<Selection>>', self.on_text_select)
         #self.tk_text.bindtags(('Text', '.tk_text', '.', 'all'))
         #self.tk_text.bind("<Key>", self.on_text_modified)

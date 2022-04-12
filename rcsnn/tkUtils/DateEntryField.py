@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinter.font import Font
 from datetime import datetime, timedelta
 from typing import List, Any
 
@@ -8,12 +9,16 @@ class DateEntryField:
     value = None
     tk_label = None
     tk_entry = None
+    default_font:Font
     row = 0
 
     def __init__(self, parent:'ttk.Frame', row:int, label:str, width:int = 20, label_width:int = 20):
+        self.default_font = Font(family='courier', size = 9)
         self.row = row
         self.tk_label = ttk.Label(parent, text=label, width=label_width)
+        self.tk_label.configure(font=self.default_font)
         self.tk_entry = tk.Entry(parent, width=width)
+        self.tk_entry.configure(font=self.default_font)
 
         self.tk_label.grid(column=0, row=row, sticky=(tk.W), padx=5)
         self.tk_entry.grid(column=1, row=row, sticky=(tk.N, tk.E, tk.W), pady=5, padx=5)
