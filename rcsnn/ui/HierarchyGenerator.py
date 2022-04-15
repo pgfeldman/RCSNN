@@ -2,13 +2,11 @@ import io
 import json
 import os
 import glob
+from pathlib import Path
 from typing import List, Dict, Union, TextIO
 
 class CodeSlugs:
-    imports = '''from rcsnn.nn_ext.CruiserController import CruiserController
-from rcsnn.nn_ext.MissileController import MissileController
-from rcsnn.nn_ext.NavigateController import NavigateController
-from rcsnn.base.DataDictionary import DataDictionary, DictionaryTypes, DictionaryEntry
+    imports = '''from rcsnn.base.DataDictionary import DataDictionary, DictionaryTypes, DictionaryEntry
 from rcsnn.base.CommandObject import CommandObject
 from rcsnn.base.Commands import Commands
 from rcsnn.base.ResponseObject import ResponseObject
@@ -18,7 +16,7 @@ from rcsnn.base.BaseController import BaseController\n\n'''
 
     module_head = '''
 
-class {}(BaseController):
+class {}({}):
     heading:DictionaryEntry
 
     def __init__(self, name: str, ddict: DataDictionary):
@@ -71,6 +69,7 @@ class HierarchyModule:
     commands:List
     cmd_obj_name:str
     rsp_obj_name:str
+    code_prefix:str
 
     def __init__(self, d:Dict):
         self.quantity = 1 #default
@@ -92,11 +91,17 @@ class HierarchyModule:
                 return hm
         return None
 
+    def get_child_class(self) -> str:
+        childclass = "{}Child".format(self.classname)
+        return childclass
+
     def generate_code(self):
         filename = "{}.py".format(self.classname)
+        if Path(filename).is_file():
+            os.remove(filename)
         with open(filename, 'w') as f:
             f.write(CodeSlugs.imports)
-            f.write(CodeSlugs.module_head.format(self.classname))
+            f.write(CodeSlugs.module_head.format(self.classname, 'BaseController'))
 
             f.write(CodeSlugs.decision)
             cmd:str = self.commands[0]
@@ -110,6 +115,13 @@ class HierarchyModule:
 
             for cmd in self.commands:
                 self.generate_task(cmd, f)
+
+        filename = "{}.py".format(self.get_child_class())
+        if not Path(filename).is_file():
+            with open(filename, 'w') as f:
+                f.write(CodeSlugs.imports)
+                f.write("from {}{} import {}\n".format(self.code_prefix, self.classname, self.classname))
+                f.write(CodeSlugs.module_head.format(self.get_child_class(), self.classname))
 
 
     def generate_task(self, cmd_str, f:TextIO):
@@ -190,6 +202,7 @@ class HierarchyGenerator:
         d:Dict
         for d in self.module_list:
             hm = HierarchyModule(d)
+            hm.code_prefix = self.code_prefix
             self.hmodule_list.append(hm)
             # TODO: Also check to see if the parent has a quantity over 1. We need to do combinatorials
             if hm.quantity > 1:
@@ -199,6 +212,7 @@ class HierarchyGenerator:
                     d2['classname'] = "{}_{}".format(d['classname'], i)
                     d2['index'] = i
                     hm2 = HierarchyModule(d2)
+                    hm2.code_prefix = self.code_prefix
                     self.hmodule_list.append(hm2)
 
         for hm in self.hmodule_list:
@@ -232,13 +246,15 @@ class HierarchyGenerator:
         os.chdir(self.code_dir)
 
         # remove previous files
-        files = glob.glob('./*')
-        fname:str
-        for fname in files:
-            if fname.endswith(".py"):
-                os.remove(fname)
+        # files = glob.glob('./*')
+        # fname:str
+        # for fname in files:
+        #     if fname.endswith(".py"):
+        #         os.remove(fname)
 
         # gen bdmon
+        if Path('bdmon.py').is_file():
+            os.remove('bdmon.py')
         hm_child:HierarchyModule
         f:TextIO
         top_command_dict = {}
@@ -246,6 +262,7 @@ class HierarchyGenerator:
             f.write(CodeSlugs.imports)
             for hm_child in self.hmodule_list:
                 f.write("from {}{} import {}\n".format(self.code_prefix, hm_child.classname, hm_child.classname))
+                f.write("from {}{} import {}\n".format(self.code_prefix, hm_child.get_child_class(), hm_child.get_child_class()))
 
             f.write(CodeSlugs.bdmon_head)
 
@@ -265,7 +282,7 @@ class HierarchyGenerator:
                 s = '    {} = ResponseObject("{}", "{}")\n'.format(hm_child.rsp_obj_name, parent_name, hm_child.name)
                 f.write(s)
 
-                s = '    {} = {}("{}", ddict)\n'.format(hm_child.name, hm_child.classname, hm_child.name)
+                s = '    {} = {}("{}", ddict)\n'.format(hm_child.name, hm_child.get_child_class(), hm_child.name)
                 s += '    {}.set_cmd_obj({})\n'.format(hm_child.name, hm_child.cmd_obj_name)
                 s += '    {}.set_rsp_obj({})\n\n'.format(hm_child.name, hm_child.rsp_obj_name)
                 f.write(s)
