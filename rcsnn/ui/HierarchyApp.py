@@ -6,6 +6,7 @@ import re
 from tkinter import filedialog
 from rcsnn.tkUtils.TextField import TextField
 from rcsnn.tkUtils.DataField import DataField
+from rcsnn.tkUtils.Buttons import Buttons
 from rcsnn.ui.HierarchyGenerator import HierarchyGenerator
 from typing import Union, Any
 
@@ -25,10 +26,16 @@ class HierarchyApp(AppBase):
 
     def build_app_view(self, row:int, text_width:int, label_width:int) -> int:
         print("build_app_view")
-        self.output_dir_field = DataField(self, row, "Target Dir", width=50)
+        self.output_dir_field = DataField(self, row, "Target Dir:", width=50)
         row = self.output_dir_field.get_next_row()
         self.json_text_field = TextField(self, row, "JSON:", height=20, label_width=10)
         row = self.json_text_field.get_next_row()
+        buttons = Buttons(self, row, "Code Execution:")
+        buttons.add_button("Run", self.run_code_callback)
+        buttons.add_button("Step", self.step_code_callback)
+        buttons.add_button("Stop", self.stop_code_callback)
+        row = buttons.get_next_row()
+
         return row
 
     def build_menus(self):
@@ -43,6 +50,18 @@ class HierarchyApp(AppBase):
         menu_file.add_command(label='Set Code Directory', command=self.set_code_dir_callback)
         menu_file.add_command(label='Generate Code', command=self.generate_code_callback)
         menu_file.add_command(label='Exit', command=self.terminate)
+
+    def run_code_callback(self):
+        self.dp.dprint("Run code")
+
+
+    def step_code_callback(self):
+        self.dp.dprint("Step code")
+
+
+    def stop_code_callback(self):
+        self.dp.dprint("Stop code")
+
 
     def load_callback(self):
         result = filedialog.askopenfile(filetypes=(("JSON files", "*.json"),("All Files", "*.*")), title="Load json ID file")

@@ -27,8 +27,11 @@ class Buttons():
         self.col = 0
 
     def add_button(self, name:str, command:Callable, sticky:Any = (tk.N, tk.W)) -> ttk.Button:
-        b = ttk.Button(self.wrapper, text=name, command=command)
-        b.configure(font=self.default_font)
+        s = ttk.Style()
+        s.configure('my.TButton', font=self.default_font)
+        b = ttk.Button(self.wrapper, text=name, command=command, style = 'my.TButton')
+
+
         b.grid(column=self.col, row=0, sticky=sticky, pady=2, padx=5)
         self.col += 1
         return b
