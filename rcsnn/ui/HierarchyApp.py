@@ -8,6 +8,8 @@ from rcsnn.tkUtils.TextField import TextField
 from rcsnn.tkUtils.DataField import DataField
 from rcsnn.tkUtils.Buttons import Buttons
 from rcsnn.ui.HierarchyGenerator import HierarchyGenerator
+#import rcsnn.generated.bd_mon as bdm
+import importlib
 from typing import Union, Any
 
 from rcsnn.ui.AppBase import AppBase
@@ -53,6 +55,8 @@ class HierarchyApp(AppBase):
 
     def run_code_callback(self):
         self.dp.dprint("Run code")
+        bdm = importlib.import_module("rcsnn.generated.bd_mon")
+        bdm.main()
 
 
     def step_code_callback(self):

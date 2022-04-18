@@ -25,6 +25,7 @@ class {}({}):
     decision = '''\n\n    def decision_process(self):
         command = self.evaluate_cmd()'''
 
+
     bdmon_head = '''
 def main():
     """
@@ -58,6 +59,8 @@ def main():
 
 if __name__ == "__main__":
     main()'''
+
+
 
 class HierarchyModule:
     quantity: int
@@ -240,6 +243,96 @@ class HierarchyGenerator:
                 return hm
         return None
 
+    def gen_bdmon_class_code(self, f:TextIO):
+        # write the class version of this
+        f.write("\nclass BoardMonitor:\n")
+        f.write("    current_step : int\n")
+        f.write("    ddict : DataDictionary\n")
+        f.write("    elapsed_time_entry : DictionaryEntry\n")
+
+        hm_child:HierarchyModule
+        for hm_child in self.hmodule_list:
+            parent_name = hm_child.parent
+            child_name = hm_child.name
+            hm_child.cmd_obj_name = 'CMD_{}_to_{}'.format(parent_name, child_name)
+            s = '    {} : CommandObject\n'.format(hm_child.cmd_obj_name)
+            f.write(s)
+
+            hm_child.rsp_obj_name = 'RSP_{}_to_{}'.format(child_name, parent_name)
+            s = '    {} : ResponseObject\n'.format(hm_child.rsp_obj_name)
+            f.write(s)
+
+            s = '    {} : {}\n'.format(hm_child.name, hm_child.get_child_class())
+            f.write(s)
+
+        f.write("\n    def setup(self):\n")
+        f.write("        self.ddict = DataDictionary()\n")
+        f.write('        self.elapsed_time_entry = DictionaryEntry("elapsed-time", DictionaryTypes.FLOAT, 0)\n')
+        f.write('        self.ddict.add_entry(self.elapsed_time_entry)\n')
+
+        top_command_dict = {}
+        for hm_child in self.hmodule_list:
+            parent_name = hm_child.parent
+            child_name = hm_child.name
+            hm_child.cmd_obj_name = 'CMD_{}_to_{}'.format(parent_name, child_name)
+            s = '        self.{} = CommandObject("{}", "{}")\n'.format(hm_child.cmd_obj_name, parent_name, hm_child.name)
+            f.write(s)
+
+            hm_child.rsp_obj_name = 'RSP_{}_to_{}'.format(child_name, parent_name)
+            s = '        self.{} = ResponseObject("{}", "{}")\n'.format(hm_child.rsp_obj_name, parent_name, hm_child.name)
+            f.write(s)
+
+            s = '        self.{} = {}("{}", self.ddict)\n'.format(hm_child.name, hm_child.get_child_class(), hm_child.name)
+            s += '        self.{}.set_cmd_obj(self.{})\n'.format(hm_child.name, hm_child.cmd_obj_name)
+            s += '        self.{}.set_rsp_obj(self.{})\n\n'.format(hm_child.name, hm_child.rsp_obj_name)
+            f.write(s)
+
+            if parent_name == 'board_monitor':
+                top_command_dict = {'name': hm_child.cmd_obj_name, 'child_name':child_name,
+                                    'cmd': hm_child.commands[0], 'hmodule':hm_child,
+                                    'cmd_obj_name':hm_child.cmd_obj_name, 'rsp_obj_name':hm_child.rsp_obj_name}
+
+        f.write("\n        # Link the modules\n")
+        for hm_child in self.hmodule_list:
+            if hm_child.parent != 'board_monitor':
+                s = "        BaseController.link_parent_child(self.{}, self.{}, self.ddict)\n".format(hm_child.parent, hm_child.name)
+                f.write(s)
+
+        f.write("\n    def start(self):\n")
+        s = "        self.{}.set(Commands.{}, 1)\n".format(top_command_dict['name'], top_command_dict['cmd'])
+        f.write(s)
+        f.write("        self.current_step = 0\n")
+
+        f.write("\n    def step(self) -> bool:\n")
+        f.write("        done = False\n")
+        f.write("        self.elapsed_time_entry.data += 0.1\n")
+        f.write("        self.ddict.store(skip = 1)\n")
+        f.write('        self.ddict.log_to_csv("testlog.csv", 1)\n')
+        hm:HierarchyModule
+        f.write("\n")
+        for hm in self.hmodule_list:
+            f.write("        self.{}.step()\n".format(hm.name))
+        hm = top_command_dict['hmodule']
+        # gp through all the commands that the top controller takes
+        for i in range(len(hm.commands)-1):
+            cur_cmd =  hm.commands[i]
+            next_cmd = hm.commands[i+1]
+            conditional = "if"
+            if i > 0:
+                conditional = "elif"
+            s = "        {} self.{}.test(Commands.{}) and self.{}.test(Responses.DONE):\n".format(conditional, top_command_dict['cmd_obj_name'], cur_cmd, top_command_dict['rsp_obj_name'])
+            f.write(s)
+            s = "            self.{}.set(Commands.{}, {})\n".format(top_command_dict['cmd_obj_name'], next_cmd, i+2)
+            f.write(s)
+        f.write('            done = True\n')
+        f.write('        self.current_step += 1\n')
+        end_slug = '''        # for debugging
+        if self.current_step == 100:
+            done = True
+        return done
+            '''
+        f.write(end_slug)
+
 
     def generate_code(self):
         cwd = os.getcwd()
@@ -253,16 +346,18 @@ class HierarchyGenerator:
         #         os.remove(fname)
 
         # gen bdmon
-        if Path('bdmon.py').is_file():
-            os.remove('bdmon.py')
+        if Path('bd_mon.py').is_file():
+            os.remove('bd_mon.py')
         hm_child:HierarchyModule
         f:TextIO
         top_command_dict = {}
         with open('bd_mon.py', 'w') as f:
             f.write(CodeSlugs.imports)
             for hm_child in self.hmodule_list:
-                f.write("from {}{} import {}\n".format(self.code_prefix, hm_child.classname, hm_child.classname))
+                # f.write("from {}{} import {}\n".format(self.code_prefix, hm_child.classname, hm_child.classname))
                 f.write("from {}{} import {}\n".format(self.code_prefix, hm_child.get_child_class(), hm_child.get_child_class()))
+
+            self.gen_bdmon_class_code(f)
 
             f.write(CodeSlugs.bdmon_head)
 
@@ -292,9 +387,9 @@ class HierarchyGenerator:
                                         'cmd': hm_child.commands[0], 'hmodule':hm_child,
                                         'cmd_obj_name':hm_child.cmd_obj_name, 'rsp_obj_name':hm_child.rsp_obj_name}
 
-            f.write("\n    # Link the modules")
+            f.write("\n    # Link the modules\n")
             for hm_child in self.hmodule_list:
-                if parent_name != 'board_monitor':
+                if hm_child.parent != 'board_monitor':
                     s = "    BaseController.link_parent_child({}, {}, ddict)\n".format(hm_child.parent, hm_child.name)
                     f.write(s)
 
