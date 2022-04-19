@@ -103,7 +103,7 @@ class HierarchyModule:
         return childclass
 
     def generate_code(self):
-        filename = "{}.py".format(self.classname)
+        filename = "./generated/{}.py".format(self.classname)
         if Path(filename).is_file():
             os.remove(filename)
         with open(filename, 'w') as f:
@@ -127,7 +127,7 @@ class HierarchyModule:
         if not Path(filename).is_file():
             with open(filename, 'w') as f:
                 f.write(CodeSlugs.imports)
-                f.write("from {}{} import {}\n".format(self.code_prefix, self.classname, self.classname))
+                f.write("from {}generated.{} import {}\n".format(self.code_prefix, self.classname, self.classname))
                 f.write(CodeSlugs.module_head.format(self.get_child_class(), self.classname))
 
 
@@ -376,65 +376,9 @@ class HierarchyGenerator:
 
             f.write(CodeSlugs.bdmon_head)
 
-            '''
-            # set up communication between modules TODO - make this a method
-            # start with "board-monitor"
-            # parent_name = 'board_monitor'
-            # hm_child_list = self.find_modules_by_parent_name(parent_name)
-            # for hm_child in hm_child_list:
-            for hm_child in self.hmodule_list:
-                parent_name = hm_child.parent
-                child_name = hm_child.name
-                hm_child.cmd_obj_name = 'CMD_{}_to_{}'.format(parent_name, child_name)
-                s = '    {} = CommandObject("{}", "{}")\n'.format(hm_child.cmd_obj_name, parent_name, hm_child.name)
-                f.write(s)
-
-                hm_child.rsp_obj_name = 'RSP_{}_to_{}'.format(child_name, parent_name)
-                s = '    {} = ResponseObject("{}", "{}")\n'.format(hm_child.rsp_obj_name, parent_name, hm_child.name)
-                f.write(s)
-
-                s = '    {} = {}("{}", ddict)\n'.format(hm_child.name, hm_child.get_child_class(), hm_child.name)
-                s += '    {}.set_cmd_obj({})\n'.format(hm_child.name, hm_child.cmd_obj_name)
-                s += '    {}.set_rsp_obj({})\n\n'.format(hm_child.name, hm_child.rsp_obj_name)
-                f.write(s)
-
-                if parent_name == 'board_monitor':
-                    top_command_dict = {'name': hm_child.cmd_obj_name, 'child_name':child_name,
-                                        'cmd': hm_child.commands[0], 'hmodule':hm_child,
-                                        'cmd_obj_name':hm_child.cmd_obj_name, 'rsp_obj_name':hm_child.rsp_obj_name}
-
-            f.write("\n    # Link the modules\n")
-            for hm_child in self.hmodule_list:
-                if hm_child.parent != 'board_monitor':
-                    s = "    BaseController.link_parent_child({}, {}, ddict)\n".format(hm_child.parent, hm_child.name)
-                    f.write(s)
-
-            # set up loop
-            hm:HierarchyModule
-            s = CodeSlugs.bdmon_loop.format(top_command_dict['name'], top_command_dict['cmd'], self.log_step, self.log_step)
-            f.write(s)
-            hm:HierarchyModule
-            f.write("\n")
-            for hm in self.hmodule_list:
-                f.write("        {}.step()\n".format(hm.name))
-
-            hm = top_command_dict['hmodule']
-            # gp through all the commands that the top controller takes
-            for i in range(len(hm.commands)-1):
-                cur_cmd =  hm.commands[i]
-                next_cmd = hm.commands[i+1]
-                conditional = "if"
-                if i > 0:
-                    conditional = "elif"
-                s = "        {} {}.test(Commands.{}) and {}.test(Responses.DONE):\n".format(conditional, top_command_dict['cmd_obj_name'], cur_cmd, top_command_dict['rsp_obj_name'])
-                f.write(s)
-                s = "            {}.set(Commands.{}, {})\n".format(top_command_dict['cmd_obj_name'], next_cmd, i+2)
-                f.write(s)
-
-            f.write(CodeSlugs.bdmon_tail.format(top_command_dict['child_name']))
-            '''
-
         # gen modules
+        if not Path('./generated').is_dir():
+            os.mkdir('./generated')
         for hm_child in self.hmodule_list:
             hm_child.generate_code()
         os.chdir(cwd)

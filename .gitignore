@@ -130,4 +130,5 @@ dmypy.json
 
 .idea/
 generated/*.py
+generated/generated/*.py
 
