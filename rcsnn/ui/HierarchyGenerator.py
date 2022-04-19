@@ -32,10 +32,14 @@ def main():
     Exercise the class in a toy hierarchy that initializes, runs, and terminates. The hierarchy is controlled from the
     main loop and has two controllers, a "parent" and a "child"
     """
-    # create the data dictionary and add "elapsed-time" as a float
-    ddict = DataDictionary()
-    elapsed_time_entry = DictionaryEntry("elapsed-time", DictionaryTypes.FLOAT, 0)
-    ddict.add_entry(elapsed_time_entry)
+    bdmon = BoardMonitor()
+    bdmon.setup()
+    done = False
+    while not done:
+        done = bdmon.step()
+        
+    bdmon.terminate()
+    
     
 '''
     bdmon_loop = '''
@@ -312,6 +316,19 @@ class HierarchyGenerator:
         f.write("\n")
         for hm in self.hmodule_list:
             f.write("        self.{}.step()\n".format(hm.name))
+
+        f.write("        done = self.decision_process()\n")
+
+        f.write('        self.current_step += 1\n')
+        end_slug = '''        # for debugging
+        if self.current_step == 100:
+            done = True
+        return done
+            '''
+        f.write(end_slug)
+
+        f.write("\n    def decision_process(self) -> bool:\n")
+        f.write("        done = False\n")
         hm = top_command_dict['hmodule']
         # gp through all the commands that the top controller takes
         for i in range(len(hm.commands)-1):
@@ -325,13 +342,11 @@ class HierarchyGenerator:
             s = "            self.{}.set(Commands.{}, {})\n".format(top_command_dict['cmd_obj_name'], next_cmd, i+2)
             f.write(s)
         f.write('            done = True\n')
-        f.write('        self.current_step += 1\n')
-        end_slug = '''        # for debugging
-        if self.current_step == 100:
-            done = True
-        return done
-            '''
-        f.write(end_slug)
+        f.write('        return(done)\n')
+
+        f.write("\n    def terminate(self):\n")
+        s = '        self.ddict.to_excel("../../data/", "{}.xlsx")\n'.format(top_command_dict['child_name'])
+        f.write(s)
 
 
     def generate_code(self):
@@ -361,6 +376,7 @@ class HierarchyGenerator:
 
             f.write(CodeSlugs.bdmon_head)
 
+            '''
             # set up communication between modules TODO - make this a method
             # start with "board-monitor"
             # parent_name = 'board_monitor'
@@ -416,6 +432,7 @@ class HierarchyGenerator:
                 f.write(s)
 
             f.write(CodeSlugs.bdmon_tail.format(top_command_dict['child_name']))
+            '''
 
         # gen modules
         for hm_child in self.hmodule_list:
