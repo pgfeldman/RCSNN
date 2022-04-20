@@ -17,7 +17,6 @@ from rcsnn.base.BaseController import BaseController\n\n'''
     module_head = '''
 
 class {}({}):
-    heading:DictionaryEntry
 
     def __init__(self, name: str, ddict: DataDictionary):
         super().__init__(name, ddict)'''
@@ -26,21 +25,23 @@ class {}({}):
         command = self.evaluate_cmd()'''
 
 
-    bdmon_head = '''
+    bdmon_main = '''
 def main():
     """
     Exercise the class in a toy hierarchy that initializes, runs, and terminates. The hierarchy is controlled from the
     main loop and has two controllers, a "parent" and a "child"
     """
-    bdmon = BoardMonitor()
+    bdmon = {}()
     bdmon.setup()
+    bdmon.start()
     done = False
     while not done:
         done = bdmon.step()
         
     bdmon.terminate()
     
-    
+if __name__ == "__main__":
+    main()
 '''
     bdmon_loop = '''
     {}.set(Commands.{}, 1)
@@ -352,33 +353,41 @@ class HierarchyGenerator:
     def generate_code(self):
         cwd = os.getcwd()
         os.chdir(self.code_dir)
-
-        # remove previous files
-        # files = glob.glob('./*')
-        # fname:str
-        # for fname in files:
-        #     if fname.endswith(".py"):
-        #         os.remove(fname)
+        if not Path('./generated').is_dir():
+            os.mkdir('./generated')
 
         # gen bdmon
-        if Path('bd_mon.py').is_file():
-            os.remove('bd_mon.py')
+        if Path('./generated/BoardMonitor.py').is_file():
+            os.remove('./generated/BoardMonitor.py')
         hm_child:HierarchyModule
         f:TextIO
-        top_command_dict = {}
-        with open('bd_mon.py', 'w') as f:
+        with open('./generated/BoardMonitor.py', 'w') as f:
             f.write(CodeSlugs.imports)
             for hm_child in self.hmodule_list:
                 # f.write("from {}{} import {}\n".format(self.code_prefix, hm_child.classname, hm_child.classname))
                 f.write("from {}{} import {}\n".format(self.code_prefix, hm_child.get_child_class(), hm_child.get_child_class()))
-
             self.gen_bdmon_class_code(f)
+            f.write(CodeSlugs.bdmon_main.format("BoardMonitor"))
 
-            f.write(CodeSlugs.bdmon_head)
+        # gen bdmon child
+        s = '''\nclass BoardMonitorChild(BoardMonitor):
+
+    def __init__(self):
+        super().__init__()\n'''
+        if Path('BoardMonitorChild.py').is_file():
+            os.remove('BoardMonitorChild.py')
+        hm_child:HierarchyModule
+        f:TextIO
+        with open('BoardMonitorChild.py', 'w') as f:
+            f.write(CodeSlugs.imports)
+            for hm_child in self.hmodule_list:
+                # f.write("from {}{} import {}\n".format(self.code_prefix, hm_child.classname, hm_child.classname))
+                f.write("from {}{} import {}\n".format(self.code_prefix, hm_child.get_child_class(), hm_child.get_child_class()))
+            f.write("from {}generated.BoardMonitor import BoardMonitor\n".format(self.code_prefix))
+            f.write(s)
+            f.write(CodeSlugs.bdmon_main.format("BoardMonitorChild"))
 
         # gen modules
-        if not Path('./generated').is_dir():
-            os.mkdir('./generated')
         for hm_child in self.hmodule_list:
             hm_child.generate_code()
         os.chdir(cwd)
