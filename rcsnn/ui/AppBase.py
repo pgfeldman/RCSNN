@@ -26,7 +26,7 @@ class AppBase(tk.Tk):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.default_font = Font(family='helvetica', size = 12)
+        self.default_font = Font(family='courier', size = 10)
         self.so = SharedObjects()
         self.dp = ConsoleDprint()
         self.setup_app()
