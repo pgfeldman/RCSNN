@@ -24,7 +24,7 @@ class HierarchyApp(AppBase):
 
     def setup_app(self):
         self.app_name = "RCSNN Hierarchy App"
-        self.app_version = "4.11.2022"
+        self.app_version = "4.20.2022"
         self.geom = (600, 550)
         self.hierarchy_json = None
 
