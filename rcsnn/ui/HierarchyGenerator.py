@@ -252,6 +252,7 @@ class HierarchyGenerator:
         # write the class version of this
         f.write("\nclass BoardMonitor:\n")
         f.write("    current_step : int\n")
+        f.write("    name = 'BoardMonitor'\n")
         f.write("    ddict : DataDictionary\n")
         f.write("    elapsed_time_entry : DictionaryEntry\n")
 

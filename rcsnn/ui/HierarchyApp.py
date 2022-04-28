@@ -11,6 +11,7 @@ from rcsnn.tkUtils.Buttons import Buttons
 from rcsnn.ui.HierarchyGenerator import HierarchyGenerator
 #import rcsnn.generated.bd_mon as bdm
 import importlib
+from types import ModuleType
 from typing import Union, Any
 
 from rcsnn.ui.AppBase import AppBase
@@ -21,12 +22,15 @@ class HierarchyApp(AppBase):
     rcs_text_field:TextField
     output_dir_field:DataField
     hg:HierarchyGenerator
+    bdmon_module: Union[ModuleType, None]
+    bdmon_class: Union[Any, None]
 
     def setup_app(self):
         self.app_name = "RCSNN Hierarchy App"
         self.app_version = "4.20.2022"
         self.geom = (600, 550)
         self.hierarchy_json = None
+        self.bdmon_module = None
 
     def build_app_view(self, row:int, text_width:int, label_width:int) -> int:
         print("build_app_view")
@@ -70,12 +74,13 @@ class HierarchyApp(AppBase):
 
     def run_code_callback(self):
         self.dp.dprint("Run code")
-        bdm = importlib.import_module("rcsnn.generated.BoardMonitorChild")
-        bdm.main()
+        if self.bdmon_module != None:
+            self.bdmon_module.main()
 
 
     def step_code_callback(self):
         self.dp.dprint("Step code")
+        self.implement_me()
 
 
     def stop_code_callback(self):
@@ -94,6 +99,15 @@ class HierarchyApp(AppBase):
                 if 'code_dir' in self.hierarchy_json:
                     abspath = os.path.abspath(self.hierarchy_json['code_dir'])
                     self.output_dir_field.set_text(abspath)
+                if 'code_prefix' in self.hierarchy_json:
+                    try:
+                        self.bdmon_module = importlib.import_module("{}BoardMonitorChild".format(self.hierarchy_json['code_prefix']))
+                        self.bdmon_class = getattr(self.bdmon_module, "BoardMonitorChild")
+                        print("Accessing class member variable 'name': {}".format(self.bdmon_class.name))
+                    except ModuleNotFoundError as err:
+                        print(err.msg)
+
+
 
 
     def save_json_callback(self):
