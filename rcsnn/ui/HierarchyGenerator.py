@@ -7,6 +7,7 @@ from typing import List, Dict, Union, TextIO
 
 class CodeSlugs:
     imports = '''from rcsnn.base.DataDictionary import DataDictionary, DictionaryTypes, DictionaryEntry
+from rcsnn.base.BaseBoardMonitor import BaseBoardMonitor
 from rcsnn.base.CommandObject import CommandObject
 from rcsnn.base.Commands import Commands
 from rcsnn.base.ResponseObject import ResponseObject
@@ -250,11 +251,11 @@ class HierarchyGenerator:
 
     def gen_bdmon_class_code(self, f:TextIO):
         # write the class version of this
-        f.write("\nclass BoardMonitor:\n")
-        f.write("    current_step : int\n")
-        f.write("    name = 'BoardMonitor'\n")
-        f.write("    ddict : DataDictionary\n")
-        f.write("    elapsed_time_entry : DictionaryEntry\n")
+        f.write("\nclass BoardMonitor(BaseBoardMonitor):\n")
+        # f.write("    current_step : int\n")
+        # f.write("    name = 'BoardMonitor'\n")
+        # f.write("    ddict : DataDictionary\n")
+        # f.write("    elapsed_time_entry : DictionaryEntry\n")
 
         hm_child:HierarchyModule
         for hm_child in self.hmodule_list:
@@ -272,9 +273,10 @@ class HierarchyGenerator:
             f.write(s)
 
         f.write("\n    def setup(self):\n")
-        f.write("        self.ddict = DataDictionary()\n")
-        f.write('        self.elapsed_time_entry = DictionaryEntry("elapsed-time", DictionaryTypes.FLOAT, 0)\n')
-        f.write('        self.ddict.add_entry(self.elapsed_time_entry)\n')
+        f.write("        super().setup()\n")
+        # f.write("        self.ddict = DataDictionary()\n")
+        # f.write('        self.elapsed_time_entry = DictionaryEntry("elapsed-time", DictionaryTypes.FLOAT, 0)\n')
+        # f.write('        self.ddict.add_entry(self.elapsed_time_entry)\n')
 
         top_command_dict = {}
         for hm_child in self.hmodule_list:
@@ -305,14 +307,13 @@ class HierarchyGenerator:
                 f.write(s)
 
         f.write("\n    def start(self):\n")
+        f.write("        super().start()\n")
         s = "        self.{}.set(Commands.{}, 1)\n".format(top_command_dict['name'], top_command_dict['cmd'])
         f.write(s)
-        f.write("        self.current_step = 0\n")
+
 
         f.write("\n    def step(self) -> bool:\n")
-        f.write("        done = False\n")
-        f.write("        self.elapsed_time_entry.data += 0.1\n")
-        f.write("        self.ddict.store(skip = 1)\n")
+        f.write("        super().step()\n")
         f.write('        self.ddict.log_to_csv("testlog.csv", 1)\n')
         hm:HierarchyModule
         f.write("\n")

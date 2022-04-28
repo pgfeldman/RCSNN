@@ -9,7 +9,7 @@ from rcsnn.tkUtils.TextField import TextField
 from rcsnn.tkUtils.DataField import DataField
 from rcsnn.tkUtils.Buttons import Buttons
 from rcsnn.ui.HierarchyGenerator import HierarchyGenerator
-#import rcsnn.generated.bd_mon as bdm
+from rcsnn.base.BaseBoardMonitor import BaseBoardMonitor
 import importlib
 from types import ModuleType
 from typing import Union, Any
@@ -23,7 +23,7 @@ class HierarchyApp(AppBase):
     output_dir_field:DataField
     hg:HierarchyGenerator
     bdmon_module: Union[ModuleType, None]
-    bdmon_class: Union[Any, None]
+    bdmon_class: Union[BaseBoardMonitor, None]
 
     def setup_app(self):
         self.app_name = "RCSNN Hierarchy App"
