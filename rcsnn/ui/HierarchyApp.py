@@ -80,11 +80,15 @@ class HierarchyApp(AppBase):
 
     def step_code_callback(self):
         self.dp.dprint("Step code")
-        self.implement_me()
-
+        if self.bdmon_class != None:
+            self.bdmon_class.step()
+            s = self.bdmon_class.ddict.to_short_string()
+            self.rcs_text_field.set_text(s)
 
     def stop_code_callback(self):
         self.dp.dprint("Stop code")
+        if self.bdmon_class != None:
+            self.bdmon_class.terminate()
 
 
     def load_callback(self):
@@ -101,9 +105,16 @@ class HierarchyApp(AppBase):
                     self.output_dir_field.set_text(abspath)
                 if 'code_prefix' in self.hierarchy_json:
                     try:
+                        # approach taken from https://stackoverflow.com/questions/4821104/dynamic-instantiation-from-string-name-of-a-class-in-dynamically-imported-module
                         self.bdmon_module = importlib.import_module("{}BoardMonitorChild".format(self.hierarchy_json['code_prefix']))
-                        self.bdmon_class = getattr(self.bdmon_module, "BoardMonitorChild")
-                        print("Accessing class member variable 'name': {}".format(self.bdmon_class.name))
+                        class_ = getattr(self.bdmon_module, "BoardMonitorChild")
+                        self.bdmon_class = class_()
+                        print("Setting up: {}".format(self.bdmon_class.name))
+                        self.bdmon_class.setup()
+                        print("Sending first command up: {}".format(self.bdmon_class.name))
+                        self.bdmon_class.start()
+                        s = self.bdmon_class.ddict.to_short_string()
+                        self.rcs_text_field.set_text(s)
                     except ModuleNotFoundError as err:
                         print(err.msg)
 

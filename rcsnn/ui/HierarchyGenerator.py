@@ -274,7 +274,7 @@ class HierarchyGenerator:
 
         f.write("\n    def setup(self):\n")
         f.write("        super().setup()\n")
-        # f.write("        self.ddict = DataDictionary()\n")
+        f.write("        self.name = 'BoardMonitor'\n")
         # f.write('        self.elapsed_time_entry = DictionaryEntry("elapsed-time", DictionaryTypes.FLOAT, 0)\n')
         # f.write('        self.ddict.add_entry(self.elapsed_time_entry)\n')
 
@@ -375,7 +375,8 @@ class HierarchyGenerator:
         s = '''\nclass BoardMonitorChild(BoardMonitor):
 
     def __init__(self):
-        super().__init__()\n'''
+        super().__init__()
+        self.name = "BoardMonitorChild"\n'''
         if Path('BoardMonitorChild.py').is_file():
             os.remove('BoardMonitorChild.py')
         hm_child:HierarchyModule
