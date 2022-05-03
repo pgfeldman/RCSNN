@@ -8,6 +8,7 @@ from tkinter import filedialog
 from rcsnn.tkUtils.TextField import TextField
 from rcsnn.tkUtils.DataField import DataField
 from rcsnn.tkUtils.Buttons import Buttons
+from rcsnn.tkUtils.CanvasFrame import CanvasFrame
 from rcsnn.ui.HierarchyGenerator import HierarchyGenerator
 from rcsnn.base.BaseBoardMonitor import BaseBoardMonitor
 import importlib
@@ -20,6 +21,7 @@ class HierarchyApp(AppBase):
     hierarchy_json:Union[Any, None]
     json_text_field:TextField
     rcs_text_field:TextField
+    canvas_frame:CanvasFrame
     output_dir_field:DataField
     hg:HierarchyGenerator
     bdmon_module: Union[ModuleType, None]
@@ -49,6 +51,9 @@ class HierarchyApp(AppBase):
         rcs_tab = ttk.Frame(tab_control)
         tab_control.add(rcs_tab, text='RCS')
         self.rcs_text_field = TextField(rcs_tab, 0, "RCS:", height=20, label_width=10)
+        canvas_tab = ttk.Frame(tab_control)
+        tab_control.add(canvas_tab, text='Canvas')
+        self.canvas_frame = CanvasFrame(canvas_tab, 0, "Graph", self.dp, width=550, height=250)
         row += 1
 
         buttons = Buttons(self, row, "Code Execution:")
@@ -167,6 +172,7 @@ class HierarchyApp(AppBase):
 
 def main():
     app = HierarchyApp()
+    app.canvas_frame.setup(debug=True)
     app.mainloop()
 
 if __name__ == "__main__":
