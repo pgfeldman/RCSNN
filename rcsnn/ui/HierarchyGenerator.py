@@ -76,7 +76,7 @@ class HierarchyModule:
     name: str
     classname: str
     parent: str
-    children:List
+    children:List["HierarchyModule"]
     commands:List
     cmd_obj_name:str
     rsp_obj_name:str
@@ -109,7 +109,18 @@ class HierarchyModule:
         val = self.child_id
         for hm in self.children:
             val = max(val, hm.get_max_child_id())
-        return max
+        return val
+
+    def get_min_child_id(self) -> int:
+        if len(self.children) == 0:
+            return 0
+        hm:HierarchyModule
+
+        val = self.children[0].child_id
+        for i in range(1, len(self.children)):
+            hm = self.children[i]
+            val = min(val, hm.child_id)
+        return val
 
     def has_child(self, name:str):
         hm:HierarchyModule
@@ -243,6 +254,9 @@ class HierarchyGenerator:
                     hm2.code_prefix = self.code_prefix
                     self.hmodule_list.append(hm2)
 
+        for hm in self.hmodule_list:
+            hm.find_children(self.hmodule_list)
+
         # Get the tree relationships
         parent_list = ['board_monitor']
         self.recurse_layer_index(parent_list)
@@ -251,8 +265,8 @@ class HierarchyGenerator:
         hm:HierarchyModule
         child_list = []
 
+        child_index = 0
         for parent_name in parent_list:
-            child_index = 0
             for hm in self.hmodule_list:
                 if hm.parent == parent_name:
                     child_list.append(hm.name)

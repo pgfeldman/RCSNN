@@ -116,11 +116,11 @@ class HierarchyApp(AppBase):
         d = json.loads(self.json_text_field.get_text())
         self.h_generator.config_from_dict(d)
         hm:HierarchyModule
-        xpos = 1
-        ypos = 1
+        xscale = 200
+        yscale = 50
         for hm in self.h_generator.hmodule_list:
-            xpos = hm.layer * 150 + 20
-            ypos = hm.child_id * 50 + 10
+            xpos = hm.layer * xscale + 20
+            ypos = max(hm.child_id * yscale, hm.get_min_child_id() * yscale) + 10
             move_node = self.canvas_frame.create_MoveableNode(hm.name, x=xpos, y=ypos)
             mod_node = ModuleNode(hm.name, module=hm, node=move_node)
             self.module_node_dict[mod_node.name] = mod_node

@@ -1,0 +1,50 @@
+{
+  "system_name": "nn_example",
+  "bdmon": "board_monitor",
+  "data_dir": "../data/",
+  "code_dir": "../generated/",
+  "root_dir": "../",
+  "code_prefix": "rcsnn.generated.",
+  "logfile": "test_log.csv",
+  "spreadsheet": "ship_controller.xlsx",
+  "log_step": 1,
+  "module_list": [
+    {
+      "name": "ship_controller",
+      "classname": "ShipController",
+      "parent": "board_monitor",
+      "commands": ["INIT", "MOVE_TO_TARGET", "TARGET_SHIPS","TERMINATE"]
+    },
+    {
+      "name": "navigate_controller",
+      "classname": "NavigateController",
+      "parent": "ship_controller",
+      "commands": ["INIT", "MOVE_TO_TARGET", "TERMINATE"]
+    },
+    {
+      "name": "propulsion_controller",
+      "classname": "PropulsionController",
+      "parent": "navigate_controller",
+      "commands": ["INIT", "AHEAD", "ASTERN", "STOP", "SLOW","ONE_THIRD", "TWO_THIRDS", "STANDARD", "FULL", "FLANK_SPEED","TERMINATE"]
+    },
+    {
+      "name": "steering_controller",
+      "classname": "SteeringController",
+      "parent": "navigate_controller",
+      "commands": ["INIT", "SET_COURSE", "TERMINATE"]
+    },
+    {
+      "name": "missile_controller",
+      "classname": "MissileController",
+      "parent": "ship_controller",
+      "commands": ["INIT", "TARGET_SHIPS", "TERMINATE"]
+    },
+    {
+      "quantity": 3,
+      "name": "missile_entity_controller",
+      "classname": "MissileEntityController",
+      "parent": "missile_controller",
+      "commands": ["INIT", "TARGET_SHIPS", "TERMINATE"]
+    }
+  ]
+}
