@@ -71,6 +71,8 @@ if __name__ == "__main__":
 class HierarchyModule:
     quantity: int
     index: int
+    layer:int
+    child_id:int
     name: str
     classname: str
     parent: str
@@ -84,6 +86,8 @@ class HierarchyModule:
         self.quantity = 1 #default
         self.index = 0 #default
         self.children = []
+        child_id = -1
+        layer = -1
         self.__dict__.update(d)
 
     def find_children(self, hm_list:List):
@@ -92,6 +96,20 @@ class HierarchyModule:
             if hm != self:
                 if self.name == hm.parent:
                     self.children.append(hm)
+
+    def set_layer_info(self, layer:int, child_id):
+        self.layer = layer
+        self.child_id = child_id
+
+    def get_max_child_id(self) -> int:
+        if len(self.children) == 0:
+            return self.child_id
+        hm:HierarchyModule
+
+        val = self.child_id
+        for hm in self.children:
+            val = max(val, hm.get_max_child_id())
+        return max
 
     def has_child(self, name:str):
         hm:HierarchyModule
@@ -169,7 +187,8 @@ class HierarchyModule:
         f.write(s)
 
     def to_string(self) -> str:
-        s = "name = {}\n\tquantity = {} of {}\n\tparent = {}\n\tcommands = {}".format(self.name, self.index+1, self.quantity, self.parent, self.commands)
+        s = "name = {}\n\tquantity = {} of {}\n\tparent = {}\n\tcommands = {}\n\tlayer = {}, child id = {}".format(
+            self.name, self.index+1, self.quantity, self.parent, self.commands, self.layer, self.child_id)
         if len(self.children) > 0:
             s += "\n\tchildren:"
             hm:HierarchyModule
@@ -224,9 +243,26 @@ class HierarchyGenerator:
                     hm2.code_prefix = self.code_prefix
                     self.hmodule_list.append(hm2)
 
-        for hm in self.hmodule_list:
-            hm.find_children(self.hmodule_list)
-            print(hm.to_string())
+        # Get the tree relationships
+        parent_list = ['board_monitor']
+        self.recurse_layer_index(parent_list)
+
+    def recurse_layer_index(self, parent_list:List, layer:int = 0):
+        hm:HierarchyModule
+        child_list = []
+
+        for parent_name in parent_list:
+            child_index = 0
+            for hm in self.hmodule_list:
+                if hm.parent == parent_name:
+                    child_list.append(hm.name)
+                    hm.set_layer_info(layer, child_index)
+                    child_index += 1
+
+        layer += 1
+        if len(child_list) > 0:
+            self.recurse_layer_index(child_list, layer)
+
 
     def read_config_file(self, filename:str):
         print("loading{}".format(filename))
@@ -395,12 +431,19 @@ class HierarchyGenerator:
             hm_child.generate_code()
         os.chdir(cwd)
 
+    def to_string(self):
+        hm:HierarchyModule
+        for hm in self.hmodule_list:
+            print(hm.to_string())
+
 
 def main():
     print(os.getcwd())
     hg = HierarchyGenerator()
     hg.read_config_file("../nn_ext/hierarchy.json")
-    hg.generate_code()
+
+    #hg.generate_code()
+    hg.to_string()
 
 if __name__ == "__main__":
     main()

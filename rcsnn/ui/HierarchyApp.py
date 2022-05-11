@@ -9,13 +9,24 @@ from rcsnn.tkUtils.TextField import TextField
 from rcsnn.tkUtils.DataField import DataField
 from rcsnn.tkUtils.Buttons import Buttons
 from rcsnn.tkUtils.CanvasFrame import CanvasFrame
-from rcsnn.ui.HierarchyGenerator import HierarchyGenerator
+from rcsnn.tkUtils.MoveableNode import MovableNode
+from rcsnn.ui.HierarchyGenerator import HierarchyGenerator, HierarchyModule
 from rcsnn.base.BaseBoardMonitor import BaseBoardMonitor
 import importlib
 from types import ModuleType
-from typing import Union, Any
+from typing import Dict, List, Union, Any
 
 from rcsnn.ui.AppBase import AppBase
+
+class ModuleNode:
+    module:HierarchyModule
+    node:MovableNode
+    name:str
+
+    def __init__(self, name:str, module:HierarchyModule, node:MovableNode):
+        self.name = name
+        self.module = module
+        self.node = node
 
 class HierarchyApp(AppBase):
     hierarchy_json:Union[Any, None]
@@ -23,9 +34,10 @@ class HierarchyApp(AppBase):
     rcs_text_field:TextField
     canvas_frame:CanvasFrame
     output_dir_field:DataField
-    hg:HierarchyGenerator
+    h_generator:HierarchyGenerator
     bdmon_module: Union[ModuleType, None]
     bdmon_class: Union[BaseBoardMonitor, None]
+    module_node_dict:Dict
 
     def setup_app(self):
         self.app_name = "RCSNN Hierarchy App"
@@ -33,6 +45,7 @@ class HierarchyApp(AppBase):
         self.geom = (600, 550)
         self.hierarchy_json = None
         self.bdmon_module = None
+        self.module_node_dict = {}
 
     def build_app_view(self, row:int, text_width:int, label_width:int) -> int:
         print("build_app_view")
@@ -95,6 +108,31 @@ class HierarchyApp(AppBase):
         if self.bdmon_class != None:
             self.bdmon_class.terminate()
 
+    def redraw_canvas(self):
+        self.module_node_dict = {}
+        # Now load the hierarchy into the graph
+        self.canvas_frame.clear_Nodes()
+        self.h_generator = HierarchyGenerator()
+        d = json.loads(self.json_text_field.get_text())
+        self.h_generator.config_from_dict(d)
+        hm:HierarchyModule
+        xpos = 1
+        ypos = 1
+        for hm in self.h_generator.hmodule_list:
+            xpos = hm.layer * 150 + 20
+            ypos = hm.child_id * 50 + 10
+            move_node = self.canvas_frame.create_MoveableNode(hm.name, x=xpos, y=ypos)
+            mod_node = ModuleNode(hm.name, module=hm, node=move_node)
+            self.module_node_dict[mod_node.name] = mod_node
+
+        mn:ModuleNode
+        pmn:ModuleNode
+        for name, mn in self.module_node_dict.items():
+            parent_name = mn.module.parent
+            if parent_name in self.module_node_dict:
+                pmn = self.module_node_dict[parent_name]
+                self.canvas_frame.connect_nodes(mn.node, pmn.node)
+
 
     def load_callback(self):
         result = filedialog.askopenfile(filetypes=(("JSON files", "*.json"),("All Files", "*.*")), title="Load json ID file")
@@ -123,8 +161,7 @@ class HierarchyApp(AppBase):
                     except ModuleNotFoundError as err:
                         print(err.msg)
 
-
-
+                self.redraw_canvas()
 
     def save_json_callback(self):
         if len(self.json_text_field.get_text()) < 3:
@@ -165,14 +202,14 @@ class HierarchyApp(AppBase):
         self.set_code_package()
         if self.hierarchy_json != None:
             print(json.dumps(self.hierarchy_json, indent=2, sort_keys=False))
-            self.hg = HierarchyGenerator()
+            self.h_generator = HierarchyGenerator()
             d = json.loads(self.json_text_field.get_text())
-            self.hg.config_from_dict(d)
-            self.hg.generate_code()
+            self.h_generator.config_from_dict(d)
+            self.h_generator.generate_code()
 
 def main():
     app = HierarchyApp()
-    app.canvas_frame.setup(debug=True)
+    app.canvas_frame.setup(debug=False)
     app.mainloop()
 
 if __name__ == "__main__":
