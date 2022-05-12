@@ -101,7 +101,7 @@ class BaseController():
     '''
     cmd: Union[CommandObject, None]
     rsp: Union[ResponseObject, None]
-    cur_state: States
+    cur_state: str
     ddict: Union[DataDictionary, None]
     name:str
     clock:float

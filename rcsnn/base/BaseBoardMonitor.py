@@ -6,19 +6,41 @@ from rcsnn.base.Responses import Responses
 from rcsnn.base.States import States
 from rcsnn.base.BaseController import BaseController
 
+from typing import Dict
+
 class BaseBoardMonitor:
     current_step : int
     name = 'BaseBoardMonitor'
     ddict : DataDictionary
     elapsed_time_entry : DictionaryEntry
+    controller_dict:Dict
 
     def setup(self):
+        self.controller_dict = {}
         self.ddict = DataDictionary()
         self.elapsed_time_entry = DictionaryEntry("elapsed-time", DictionaryTypes.FLOAT, 0)
         self.ddict.add_entry(self.elapsed_time_entry)
 
     def start(self):
         self.current_step = 0
+
+    def get_cmd_str(self, controller_name:str) -> str:
+        if controller_name in self.controller_dict:
+            ctrl:BaseController = self.controller_dict[controller_name]
+            return ctrl.cmd.cmd
+        return "NOP"
+
+    def get_state_str(self, controller_name:str) -> str:
+        if controller_name in self.controller_dict:
+            ctrl:BaseController = self.controller_dict[controller_name]
+            return ctrl.cur_state
+        return "NOP"
+
+    def get_rsp_str(self, controller_name:str) -> str:
+        if controller_name in self.controller_dict:
+            ctrl:BaseController = self.controller_dict[controller_name]
+            return ctrl.rsp.rsp
+        return "NOP"
 
     def step(self) -> bool:
         done = False

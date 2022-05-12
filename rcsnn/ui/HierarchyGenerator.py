@@ -342,8 +342,10 @@ class HierarchyGenerator:
 
             s = '        self.{} = {}("{}", self.ddict)\n'.format(hm_child.name, hm_child.get_child_class(), hm_child.name)
             s += '        self.{}.set_cmd_obj(self.{})\n'.format(hm_child.name, hm_child.cmd_obj_name)
-            s += '        self.{}.set_rsp_obj(self.{})\n\n'.format(hm_child.name, hm_child.rsp_obj_name)
+            s += '        self.{}.set_rsp_obj(self.{})\n'.format(hm_child.name, hm_child.rsp_obj_name)
+            s += '        self.controller_dict["{}"] = self.{}\n\n'.format(hm_child.name, hm_child.name)
             f.write(s)
+
 
             if parent_name == 'board_monitor':
                 top_command_dict = {'name': hm_child.cmd_obj_name, 'child_name':child_name,
@@ -456,7 +458,7 @@ def main():
     hg = HierarchyGenerator()
     hg.read_config_file("../nn_ext/hierarchy.json")
 
-    #hg.generate_code()
+    hg.generate_code()
     hg.to_string()
 
 if __name__ == "__main__":

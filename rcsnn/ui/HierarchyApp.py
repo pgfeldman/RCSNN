@@ -104,6 +104,15 @@ class HierarchyApp(AppBase):
             s = self.bdmon_class.ddict.to_short_string()
             self.rcs_text_field.set_text(s)
 
+            mn:ModuleNode
+            rmn:RCSMoveableNode
+            for name, mn in self.module_node_dict.items():
+                cmd_str = self.bdmon_class.get_cmd_str(name)
+                state_str = self.bdmon_class.get_state_str(name)
+                rsp_str = self.bdmon_class.get_rsp_str(name)
+                rmn = mn.node
+                rmn.set_module_text(cmd_str, state_str, rsp_str)
+
     def stop_code_callback(self):
         self.dp.dprint("Stop code")
         if self.bdmon_class != None:

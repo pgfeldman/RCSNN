@@ -17,3 +17,7 @@ class States():
     S7 = "s7"
     S8 = "s8"
     S9 = "s9"
+
+if __name__ == "__main__":
+    s = States.S0
+    print(s)
