@@ -9,7 +9,8 @@ from rcsnn.tkUtils.TextField import TextField
 from rcsnn.tkUtils.DataField import DataField
 from rcsnn.tkUtils.Buttons import Buttons
 from rcsnn.tkUtils.CanvasFrame import CanvasFrame
-from rcsnn.tkUtils.MoveableNode import MovableNode
+# from rcsnn.tkUtils.MoveableNode import MovableNode
+from rcsnn.ui.RCNMoveableNode import RCSMoveableNode
 from rcsnn.ui.HierarchyGenerator import HierarchyGenerator, HierarchyModule
 from rcsnn.base.BaseBoardMonitor import BaseBoardMonitor
 import importlib
@@ -20,10 +21,10 @@ from rcsnn.ui.AppBase import AppBase
 
 class ModuleNode:
     module:HierarchyModule
-    node:MovableNode
+    node:RCSMoveableNode
     name:str
 
-    def __init__(self, name:str, module:HierarchyModule, node:MovableNode):
+    def __init__(self, name:str, module:HierarchyModule, node:RCSMoveableNode):
         self.name = name
         self.module = module
         self.node = node
@@ -109,6 +110,7 @@ class HierarchyApp(AppBase):
             self.bdmon_class.terminate()
 
     def redraw_canvas(self):
+        canvas_data = self.canvas_frame.cd
         self.module_node_dict = {}
         # Now load the hierarchy into the graph
         self.canvas_frame.clear_Nodes()
@@ -117,11 +119,15 @@ class HierarchyApp(AppBase):
         self.h_generator.config_from_dict(d)
         hm:HierarchyModule
         xscale = 200
-        yscale = 50
+        yscale = 70
+        size = 50
         for hm in self.h_generator.hmodule_list:
             xpos = hm.layer * xscale + 20
             ypos = max(hm.child_id * yscale, hm.get_min_child_id() * yscale) + 10
-            move_node = self.canvas_frame.create_MoveableNode(hm.name, x=xpos, y=ypos)
+            # move_node = self.canvas_frame.create_MoveableNode(hm.name, x=xpos, y=ypos)
+            color = self.canvas_frame.rand_color()
+            move_node = RCSMoveableNode(name=hm.name, canvas=canvas_data, dprint=self.dp, color=color, size=size, x=xpos, y=ypos)
+            self.canvas_frame.add_Node(move_node)
             mod_node = ModuleNode(hm.name, module=hm, node=move_node)
             self.module_node_dict[mod_node.name] = mod_node
 
@@ -132,6 +138,15 @@ class HierarchyApp(AppBase):
             if parent_name in self.module_node_dict:
                 pmn = self.module_node_dict[parent_name]
                 self.canvas_frame.connect_nodes(mn.node, pmn.node)
+
+        # test that we can update module text
+        count = 0
+        rmn:RCSMoveableNode
+        for name, mn in self.module_node_dict.items():
+            rmn = mn.node
+            rmn.set_module_text("CMD_{}".format(count), "STATE_{}".format(count), "RSP_{}".format(count))
+            count += 1
+
 
 
     def load_callback(self):
