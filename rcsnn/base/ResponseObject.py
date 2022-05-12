@@ -31,7 +31,7 @@ class ResponseObject():
     to_string(self) -> str:
     '''
     serial:int
-    rsp:Responses
+    rsp:str
     parentname:str
     childname:str
     name:str

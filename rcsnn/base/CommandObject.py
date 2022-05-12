@@ -36,7 +36,7 @@ class CommandObject():
     '''
 
     serial:int
-    cmd:Commands
+    cmd:str
     parentname:str
     childname:str
     new_command:bool
