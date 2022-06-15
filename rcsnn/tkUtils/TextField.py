@@ -70,6 +70,27 @@ class TextField:
         self.tk_text.delete('1.0', tk.END)
         self.tk_text.insert("1.0", text)
 
+    def color_text(self, target:str, color_str:str='red'):
+        self.tk_text.tag_remove(target, '1.0', tk.END)
+
+        start_pos = '1.0'
+        while start_pos:
+            start_pos = self.tk_text.search(target, start_pos, stopindex=tk.END)
+            try:
+                spl = start_pos.split('.')
+                index = int(spl[1])
+                end_pos = "{}.{}".format(spl[0], index+len(target))
+                print("{} pos = {}, end = {}".format(target, start_pos, end_pos))
+                self.tk_text.tag_add(target, start_pos, end_pos)
+                self.tk_text.tag_config(target, foreground=color_str)
+                start_pos = end_pos
+            except IndexError as e:
+                #print("start_pos = {}, error = {}".format(start_pos, e))
+                pass
+
+
+
+
     def set_animate_text(self, text:str, animate_delay:int = 30):
         self.reference_text = text
         self.animate_delay_ms = animate_delay

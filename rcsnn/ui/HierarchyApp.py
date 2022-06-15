@@ -125,6 +125,12 @@ class HierarchyApp(AppBase):
             s = self.bdmon_class.ddict.to_short_string()
 
         self.rcs_text_field.set_text(s)
+        self.rcs_text_field.color_text("CMD", color_str='blue')
+        self.rcs_text_field.color_text("RSP", color_str='magenta')
+        self.rcs_text_field.color_text("executing", color_str='orange')
+        self.rcs_text_field.color_text("error", color_str='red')
+        self.rcs_text_field.color_text("done", color_str='green')
+
 
     def set_filter_callback(self):
         self.ddict_filter = self.ddict_filter_field.get_text()
@@ -215,8 +221,7 @@ class HierarchyApp(AppBase):
                         self.bdmon_class.setup()
                         print("Sending first command up: {}".format(self.bdmon_class.name))
                         self.bdmon_class.start()
-                        s = self.bdmon_class.ddict.to_short_string()
-                        self.rcs_text_field.set_text(s)
+                        self.run_ddict_filter()
                     except ModuleNotFoundError as err:
                         print(err.msg)
 

@@ -232,9 +232,10 @@ class HierarchyGenerator:
         self.hmodule_list = []
         self.hierarchy_dict = {}
 
-    def config_from_dict(self, d:Dict):
+    def config_from_dict(self, d:Dict, do_print:bool = False):
         self.hierarchy_dict = d
-        print(json.dumps(self.hierarchy_dict, indent=4, sort_keys=True))
+        if do_print:
+            print(json.dumps(self.hierarchy_dict, indent=4, sort_keys=True))
         self.__dict__.update(self.hierarchy_dict)
         #load the modules
         hm:HierarchyModule
