@@ -498,6 +498,19 @@ class DataDictionary:
             to_return += "({}:{})  ".format(key, val.get_data())
         return to_return
 
+    def to_list(self) -> List:
+        """ Generate a list of strings with just the current values of the items in the ddict
+
+        Parameters
+        ----------
+
+        :return: A minimal list representation of the entire ddict
+        """
+        to_return = []
+        for key, val in self.ddict.items():
+            to_return.append("({}:{})  ".format(key, val.get_data()))
+        return to_return
+
     def to_dict_array(self) -> List:
         """ Create a list of Dicts that can be saved out as a file and loaded in using set_entries_from_dict()
 

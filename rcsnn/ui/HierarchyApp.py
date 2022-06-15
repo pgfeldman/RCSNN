@@ -33,20 +33,23 @@ class HierarchyApp(AppBase):
     hierarchy_json:Union[Any, None]
     json_text_field:TextField
     rcs_text_field:TextField
+    ddict_filter_field:DataField
     canvas_frame:CanvasFrame
     output_dir_field:DataField
     h_generator:HierarchyGenerator
     bdmon_module: Union[ModuleType, None]
     bdmon_class: Union[BaseBoardMonitor, None]
     module_node_dict:Dict
+    ddict_filter:str
 
     def setup_app(self):
         self.app_name = "RCSNN Hierarchy App"
-        self.app_version = "4.20.2022"
+        self.app_version = "5.27.2022"
         self.geom = (600, 550)
         self.hierarchy_json = None
         self.bdmon_module = None
         self.module_node_dict = {}
+        self.ddict_filter = ""
 
     def build_app_view(self, row:int, text_width:int, label_width:int) -> int:
         print("build_app_view")
@@ -61,13 +64,15 @@ class HierarchyApp(AppBase):
         tab_control.grid(column=0, row=row, columnspan=2, sticky="nsew")
         json_tab = ttk.Frame(tab_control)
         tab_control.add(json_tab, text='JSON')
-        self.json_text_field = TextField(json_tab, 0, "JSON:", height=20, label_width=10)
+        self.build_json_tab(json_tab)
+
         rcs_tab = ttk.Frame(tab_control)
         tab_control.add(rcs_tab, text='RCS')
-        self.rcs_text_field = TextField(rcs_tab, 0, "RCS:", height=20, label_width=10)
+        self.build_ddict_tab(rcs_tab)
+
         canvas_tab = ttk.Frame(tab_control)
         tab_control.add(canvas_tab, text='Canvas')
-        self.canvas_frame = CanvasFrame(canvas_tab, 0, "Graph", self.dp, width=550, height=250)
+        self.build_graph_tab(canvas_tab)
         row += 1
 
         buttons = Buttons(self, row, "Code Execution:")
@@ -77,6 +82,24 @@ class HierarchyApp(AppBase):
         row = buttons.get_next_row()
 
         return row
+
+    def build_json_tab(self, tab:ttk.Frame):
+        row = 0
+        self.json_text_field = TextField(tab, row, "JSON:", height=20, label_width=10)
+        row = self.json_text_field.get_next_row()
+
+    def build_ddict_tab(self, tab:ttk.Frame):
+        row = 0
+        self.ddict_filter_field = DataField(tab, row, "Filter", width=30)
+        self.ddict_filter_field.add_button("Filter", self.set_filter_callback)
+        self.ddict_filter_field.add_button("Clear", self.clear_filter_callback)
+        row = self.ddict_filter_field.get_next_row()
+        self.rcs_text_field = TextField(tab, row, "RCS:", height=19, label_width=10)
+        row = self.rcs_text_field.get_next_row()
+
+    def build_graph_tab(self, tab:ttk.Frame):
+        row = 0
+        self.canvas_frame = CanvasFrame(tab, row, "Graph", self.dp, width=550, height=250)
 
     def build_menus(self):
         print("building menus")
@@ -91,18 +114,37 @@ class HierarchyApp(AppBase):
         menu_file.add_command(label='Generate Code', command=self.generate_code_callback)
         menu_file.add_command(label='Exit', command=self.terminate)
 
+    def run_ddict_filter(self):
+        l = self.bdmon_class.ddict.to_list()
+        s = ""
+        if len(self.ddict_filter) > 2:
+            for entry in l:
+                if self.ddict_filter in entry:
+                    s += "{}\n".format(entry)
+        else:
+            s = self.bdmon_class.ddict.to_short_string()
+
+        self.rcs_text_field.set_text(s)
+
+    def set_filter_callback(self):
+        self.ddict_filter = self.ddict_filter_field.get_text()
+        self.run_ddict_filter()
+
+    def clear_filter_callback(self):
+        self.ddict_filter = ""
+        self.ddict_filter_field.clear()
+        self.run_ddict_filter()
+
     def run_code_callback(self):
         self.dp.dprint("Run code")
         if self.bdmon_module != None:
             self.bdmon_module.main()
 
-
     def step_code_callback(self):
         self.dp.dprint("Step code")
         if self.bdmon_class != None:
             self.bdmon_class.step()
-            s = self.bdmon_class.ddict.to_short_string()
-            self.rcs_text_field.set_text(s)
+            self.run_ddict_filter()
 
             mn:ModuleNode
             rmn:RCSMoveableNode
@@ -148,13 +190,6 @@ class HierarchyApp(AppBase):
                 pmn = self.module_node_dict[parent_name]
                 self.canvas_frame.connect_nodes(mn.node, pmn.node)
 
-        # test that we can update module text
-        count = 0
-        rmn:RCSMoveableNode
-        for name, mn in self.module_node_dict.items():
-            rmn = mn.node
-            rmn.set_module_text("CMD_{}".format(count), "STATE_{}".format(count), "RSP_{}".format(count))
-            count += 1
 
 
 
